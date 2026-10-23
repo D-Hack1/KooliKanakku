@@ -3,6 +3,7 @@ package com.koolikanaku.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -52,6 +53,9 @@ import com.koolikanaku.R
 import com.koolikanaku.ui.CaptureTarget
 import com.koolikanaku.ui.SizeMethod
 import com.koolikanaku.ui.components.CrosshairOverlay
+import com.koolikanaku.ui.components.PhotoImage
+import com.koolikanaku.ui.components.openPhotoExternally
+import androidx.compose.ui.platform.LocalContext
 
 /**
  * Room Capture stepper: choose how the room's size is known, take the guided measure
@@ -76,8 +80,8 @@ fun RoomCaptureScreen(
     presetIndex: Int?,
     presetLabels: List<Pair<String, String>>,
     onPresetChange: (Int) -> Unit,
-    widePhotoCount: Int,
-    toughPhotoCount: Int,
+    widePhotos: List<android.net.Uri> = emptyList(),
+    toughPhotos: List<android.net.Uri> = emptyList(),
     canAddWide: Boolean,
     canAddTough: Boolean,
     readyToAnalyze: Boolean,
@@ -96,11 +100,12 @@ fun RoomCaptureScreen(
 ) {
     var sheetOpen by remember { mutableStateOf(false) }
     val isMeasure = sizeMethod == SizeMethod.MEASURE
+    val context = LocalContext.current
 
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
-                Row(modifier = Modifier.padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.Top) {
+                Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.Top) {
                     IconButton(onClick = onBack) {
                         Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.capture_back_to_setup))
                     }
@@ -224,7 +229,7 @@ fun RoomCaptureScreen(
                 }
 
                 item {
-                    StepBlock(number = 2, done = widePhotoCount >= 1, title = stringResource(R.string.capture_wide_title)) {
+                    StepBlock(number = 2, done = widePhotos.isNotEmpty(), title = stringResource(R.string.capture_wide_title)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 stringResource(if (isMeasure) R.string.capture_wide_hint_recommended else R.string.capture_wide_hint_required),
@@ -232,7 +237,9 @@ fun RoomCaptureScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                repeat(widePhotoCount) { PhotoThumb(modifier = Modifier) }
+                                widePhotos.forEach { uri ->
+                                    PhotoThumb(uri = uri, onClick = { openPhotoExternally(context, uri) })
+                                }
                                 if (canAddWide) {
                                     AddPhotoTile(stringResource(R.string.common_add)) { onOpenCamera(CaptureTarget.WIDE) }
                                 }
@@ -242,7 +249,7 @@ fun RoomCaptureScreen(
                 }
 
                 item {
-                    StepBlock(number = 3, done = toughPhotoCount >= 1, title = stringResource(R.string.capture_toughest_title)) {
+                    StepBlock(number = 3, done = toughPhotos.isNotEmpty(), title = stringResource(R.string.capture_toughest_title)) {
                         Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                             Text(
                                 stringResource(R.string.capture_toughest_hint),
@@ -250,7 +257,9 @@ fun RoomCaptureScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                repeat(toughPhotoCount) { PhotoThumb(modifier = Modifier) }
+                                toughPhotos.forEach { uri ->
+                                    PhotoThumb(uri = uri, onClick = { openPhotoExternally(context, uri) })
+                                }
                                 if (canAddTough) {
                                     AddPhotoTile(stringResource(R.string.capture_close_up)) { onOpenCamera(CaptureTarget.TOUGHEST) }
                                 }
@@ -371,16 +380,16 @@ private fun PresetTile(label: String, sub: String, selected: Boolean, onClick: (
 }
 
 @Composable
-private fun PhotoThumb(modifier: Modifier = Modifier) {
+private fun PhotoThumb(uri: android.net.Uri? = null, onClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.size(84.dp, 112.dp),
+        modifier = modifier
+            .size(84.dp, 112.dp)
+            .let { if (onClick != null) it.clickable(onClick = onClick) else it },
         shape = RoundedCornerShape(10.dp),
         color = MaterialTheme.colorScheme.primaryContainer,
         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Icon(Icons.Outlined.PhotoCamera, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-        }
+        PhotoImage(uri = uri, modifier = Modifier.fillMaxSize())
     }
 }
 

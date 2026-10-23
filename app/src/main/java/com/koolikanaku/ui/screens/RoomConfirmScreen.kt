@@ -3,6 +3,7 @@ package com.koolikanaku.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -58,9 +59,12 @@ import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.components.AddTaskSheet
 import com.koolikanaku.ui.components.BoundingBoxOverlay
 import com.koolikanaku.ui.components.CatalogEntry
+import com.koolikanaku.ui.components.PhotoImage
 import com.koolikanaku.ui.components.SeverityChip
 import com.koolikanaku.ui.components.TaskRow
+import com.koolikanaku.ui.components.openPhotoExternally
 import com.koolikanaku.ui.displayName
+import androidx.compose.ui.platform.LocalContext
 
 enum class ConfirmPhotoTab { WIDE, TOUGHEST }
 
@@ -79,6 +83,8 @@ fun RoomConfirmScreen(
     wideDetections: List<DetectedObject>,
     wideImageWidth: Int,
     wideImageHeight: Int,
+    widePhotoUri: android.net.Uri? = null,
+    toughPhotoUri: android.net.Uri? = null,
     toughSummaryText: String,
     roomType: RoomType,
     suggestedRoomType: RoomType?,
@@ -118,7 +124,7 @@ fun RoomConfirmScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            Row(modifier = Modifier.padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
+            Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
                 }
@@ -162,15 +168,20 @@ fun RoomConfirmScreen(
                         TabButton(stringResource(R.string.confirm_tab_wide), photoTab == ConfirmPhotoTab.WIDE, { onPhotoTabChange(ConfirmPhotoTab.WIDE) }, Modifier.weight(1f))
                         TabButton(stringResource(R.string.confirm_tab_tough), photoTab == ConfirmPhotoTab.TOUGHEST, { onPhotoTabChange(ConfirmPhotoTab.TOUGHEST) }, Modifier.weight(1f))
                     }
+                    val confirmContext = LocalContext.current
+                    val shownPhotoUri = if (photoTab == ConfirmPhotoTab.WIDE) widePhotoUri else toughPhotoUri
                     Surface(
                         shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.primaryContainer,
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
                     ) {
-                        Box(modifier = Modifier.fillMaxWidth().aspectRatio(358f / 250f)) {
-                            Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                                Icon(Icons.Outlined.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                            }
+                        Box(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .aspectRatio(358f / 250f)
+                                .let { m -> if (shownPhotoUri != null) m.clickable { openPhotoExternally(confirmContext, shownPhotoUri) } else m }
+                        ) {
+                            PhotoImage(uri = shownPhotoUri, modifier = Modifier.fillMaxSize(), cornerRadiusDp = 0)
                             if (photoTab == ConfirmPhotoTab.WIDE) {
                                 BoundingBoxOverlay(
                                     detections = wideDetections,

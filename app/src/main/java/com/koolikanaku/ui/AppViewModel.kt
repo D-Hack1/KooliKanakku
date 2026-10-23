@@ -48,12 +48,16 @@ class AppViewModel : ViewModel() {
         private set
     var heightCm by mutableStateOf("")
         private set
+    var darkTheme by mutableStateOf(false)
+        private set
 
     fun changeMode(value: AppMode) { mode = value }
     fun changeLanguage(value: AppLanguage) { language = value }
     fun changeRateText(value: String) { rateText = value }
     fun changePaceFactor(value: Double) { paceFactor = value }
     fun changeHeightCm(value: String) { heightCm = value }
+    fun changeDarkTheme(value: Boolean) { darkTheme = value }
+    fun toggleDarkTheme() { darkTheme = !darkTheme }
 
     // ---- Job state ----
     var job by mutableStateOf<Job?>(null)

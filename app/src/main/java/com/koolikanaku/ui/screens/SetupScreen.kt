@@ -16,9 +16,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CleaningServices
+import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.House
+import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -63,6 +66,8 @@ fun SetupScreen(
     heightCm: String,
     onHeightChange: (String) -> Unit,
     onStartJob: () -> Unit,
+    darkTheme: Boolean = false,
+    onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val isWorker = mode == AppMode.WORKER_ESTIMATE
@@ -98,7 +103,10 @@ fun SetupScreen(
                         Text("KooliKanaku", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                         Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                     }
-                    LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                    }
                 }
             }
 
@@ -235,6 +243,17 @@ fun SetupScreen(
                 }
             }
         }
+    }
+}
+
+@Composable
+private fun DarkModeToggle(darkTheme: Boolean, onToggle: () -> Unit) {
+    IconButton(onClick = onToggle) {
+        Icon(
+            imageVector = if (darkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
+            contentDescription = if (darkTheme) stringResource(R.string.setup_light_mode) else stringResource(R.string.setup_dark_mode),
+            tint = MaterialTheme.colorScheme.primary
+        )
     }
 }
 

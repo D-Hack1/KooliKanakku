@@ -10,6 +10,8 @@
     <string name="offline_badge">Offline</string>
     <string name="language_english">English</string>
     <string name="language_malayalam">മലയാളം</string>
+    <string name="setup_dark_mode">Switch to dark mode</string>
+    <string name="setup_light_mode">Switch to light mode</string>
 
     <!-- Shared enums -->
     <string name="room_type_kitchen">Kitchen</string>
@@ -224,6 +226,7 @@
     <string name="bill_evidence_note">Tap a photo for its full hash and time.</string>
     <string name="bill_hash_of">SHA-256 of the exact saved file</string>
     <string name="bill_taken_label">Taken</string>
+    <string name="bill_open_photo">Open photo</string>
     <string name="bill_disclaimer">Estimate computed on-device. Hashes are of the original captures. Tamper-evident, not tamper-proof: a phone clock can be changed.</string>
     <string name="bill_export_pdf">Export PDF</string>
     <string name="bill_share">Share</string>

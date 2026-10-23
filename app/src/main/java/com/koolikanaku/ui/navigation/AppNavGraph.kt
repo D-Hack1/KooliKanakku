@@ -81,6 +81,8 @@ fun AppNavGraph(
                 onPaceChange = vm::changePaceFactor,
                 heightCm = vm.heightCm,
                 onHeightChange = vm::changeHeightCm,
+                darkTheme = vm.darkTheme,
+                onToggleDarkTheme = vm::toggleDarkTheme,
                 onStartJob = {
                     vm.startJob()
                     navController.navigate(Routes.JOB_HUB)
@@ -188,8 +190,10 @@ fun AppNavGraph(
                 }
             }
 
-            val wideCount = room.widePhotoCount()
-            val toughCount = room.toughPhotoCount()
+            val widePhotoUris = room.photos.filter { it.role == PhotoRole.WIDE }.map { it.uri }
+            val toughPhotoUris = room.photos.filter { it.role == PhotoRole.TOUGHEST }.map { it.uri }
+            val wideCount = widePhotoUris.size
+            val toughCount = toughPhotoUris.size
             val lengthTaken = room.photos.any { it.role == PhotoRole.MEASURE_LENGTH }
             val widthTaken = room.photos.any { it.role == PhotoRole.MEASURE_WIDTH }
             val sizeStepDone = when (vm.sizeMethod) {
@@ -218,8 +222,8 @@ fun AppNavGraph(
                 presetIndex = vm.presetIndex,
                 presetLabels = vm.presetOptions.map { it.labelEn to it.labelEn },
                 onPresetChange = vm::changePresetIndex,
-                widePhotoCount = wideCount,
-                toughPhotoCount = toughCount,
+                widePhotos = widePhotoUris,
+                toughPhotos = toughPhotoUris,
                 canAddWide = wideCount < 4,
                 canAddTough = toughCount < 4,
                 readyToAnalyze = readyToAnalyze,
@@ -293,6 +297,8 @@ fun AppNavGraph(
                 wideDetections = emptyList(),
                 wideImageWidth = 0,
                 wideImageHeight = 0,
+                widePhotoUri = room.photos.lastOrNull { it.role == PhotoRole.WIDE }?.uri,
+                toughPhotoUri = room.photos.lastOrNull { it.role == PhotoRole.TOUGHEST }?.uri,
                 toughSummaryText = "${room.toughPhotoCount()} close-up photo(s). No automatic grime score - set severity below.",
                 roomType = room.roomType,
                 suggestedRoomType = null,
@@ -384,7 +390,8 @@ fun AppNavGraph(
                             label = it.role.name,
                             hashShort = it.sha256Hash.take(10),
                             fullHash = it.sha256Hash,
-                            timeText = it.timestampIso
+                            timeText = it.timestampIso,
+                            uri = it.uri
                         )
                     }
                 )
