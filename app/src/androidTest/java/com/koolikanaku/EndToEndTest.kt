@@ -2,6 +2,7 @@ package com.koolikanaku
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.koolikanaku.ai.initDetector
+import com.koolikanaku.capture.JobStorage
 import com.koolikanaku.capture.PhotoStore
 import com.koolikanaku.domain.PhotoRole
 import com.koolikanaku.domain.RoomType
@@ -30,12 +31,41 @@ class EndToEndTest {
 
     @Before fun setUp() {
         initDetector(context)
+        JobStorage.clear(context)
     }
 
     private fun addPhoto(vm: AppViewModel, roomId: String, name: String, role: PhotoRole, depressionDeg: Float? = null, holdHeightM: Float? = null) {
         val (file, _) = PhotoStore.createCaptureTarget(context)
         File(photoDir, name).copyTo(file, overwrite = true)
         vm.addPhoto(roomId, PhotoStore.processCapturedFile(context, file, role, depressionDeg, holdHeightM))
+    }
+
+    @Test fun savedJobResumesLikeAfterProcessDeath() {
+        JobStorage.clear(context)
+        val vm = AppViewModel()
+        vm.attachStorage(context)
+        vm.changeLanguage(com.koolikanaku.ui.AppLanguage.ML)
+        vm.changeRateText("300")
+        vm.startJob()
+        val id = vm.addRoom()
+        vm.addPhoto(id, com.koolikanaku.domain.EvidencePhoto("p1", PhotoRole.WIDE, android.net.Uri.parse("content://com.koolikanaku.fileprovider/evidence_photos/x.jpg"), "2026-01-01T00:00:00Z", "ab".repeat(32), 19.3f, 1.4f))
+        vm.setManualSizeSqFt(id, 150.0)
+        vm.selectAllTasks(id, true)
+        assertTrue(vm.finishJob())
+        vm.awaitPendingSave()
+
+        val resumed = AppViewModel()
+        resumed.attachStorage(context)
+        assertEquals(vm.job, resumed.job)
+        assertEquals(vm.quote, resumed.quote)
+        assertEquals(vm.currentRoomId, resumed.currentRoomId)
+        assertEquals(com.koolikanaku.ui.AppLanguage.ML, resumed.language)
+        assertEquals("300", resumed.rateText)
+        assertTrue(resumed.hasResumableJob())
+        JobStorage.clear(context)
+        val fresh = AppViewModel()
+        fresh.attachStorage(context)
+        assertEquals(null, fresh.job)
     }
 
     @Test fun finishIsBlockedUntilEveryRoomHasASize() {
@@ -82,6 +112,7 @@ class EndToEndTest {
     @Test fun twoRoomJobFlowsToBillAndPdf(): Unit = runBlocking {
         assumeTrue("Missing test photos", File(photoDir, "bathroom.jpg").exists() && File(photoDir, "kitchen.jpg").exists())
         val vm = AppViewModel()
+        vm.attachStorage(context)
         vm.startJob()
 
         // Room 1: bathroom, preset size
@@ -135,5 +166,13 @@ class EndToEndTest {
         val bytes = context.contentResolver.openInputStream(pdf)!!.use { it.readBytes() }
         assertTrue("pdf size ${bytes.size}", bytes.size > 5_000)
         assertEquals("%PDF", String(bytes.copyOf(4)))
+
+        // Resume: a new ViewModel loads the same analyzed job (detections, grime, tasks, quote) from disk.
+        vm.awaitPendingSave()
+        val resumed = AppViewModel()
+        resumed.attachStorage(context)
+        assertEquals(vm.job, resumed.job)
+        assertEquals(vm.toughScores, resumed.toughScores)
+        assertEquals(vm.quote, resumed.quote)
     }
 }

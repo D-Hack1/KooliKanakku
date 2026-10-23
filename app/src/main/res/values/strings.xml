@@ -181,10 +181,10 @@
 
     <!-- Job hub screen -->
     <string name="jobhub_title">Your job</string>
-    <string name="jobhub_rooms_count">%1$d rooms</string>
     <string name="jobhub_rate_per_hour">₹%1$s per hour</string>
     <string name="jobhub_pace_standard">Standard pace 1.0×</string>
     <string name="jobhub_room_confirmed">Confirmed</string>
+    <string name="jobhub_room_in_progress">In progress</string>
     <string name="jobhub_room_meta_size">%1$d sq ft · %2$s</string>
     <string name="jobhub_room_meta_tasks">%1$d tasks · Dirt: %2$s</string>
     <string name="jobhub_room_time">%1$s–%2$s hrs</string>
@@ -242,4 +242,12 @@
     <string name="reanalyze_body">This room already has ticked tasks. Analyzing again rebuilds the checklist and clears your ticks.</string>
     <string name="reanalyze_confirm">Analyze again</string>
     <string name="reanalyze_cancel">Keep my ticks</string>
+    <plurals name="setup_resume_job">
+        <item quantity="one">Resume your last job (%1$d room)</item>
+        <item quantity="other">Resume your last job (%1$d rooms)</item>
+    </plurals>
+    <plurals name="jobhub_rooms_count_plural">
+        <item quantity="one">%1$d room</item>
+        <item quantity="other">%1$d rooms</item>
+    </plurals>
 </resources>

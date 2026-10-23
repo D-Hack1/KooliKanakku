@@ -21,12 +21,12 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.HelpOutline
+import androidx.compose.material.icons.automirrored.outlined.HelpOutline
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -140,7 +140,7 @@ fun RoomConfirmScreen(
         topBar = {
             Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
                 }
                 Column(modifier = Modifier.padding(top = 10.dp)) {
                     Text(stringResource(R.string.confirm_title), style = MaterialTheme.typography.headlineMedium)
@@ -278,7 +278,7 @@ fun RoomConfirmScreen(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Text(stringResource(R.string.confirm_size_label), style = MaterialTheme.typography.titleSmall)
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                         OutlinedTextField(
@@ -321,7 +321,7 @@ fun RoomConfirmScreen(
                     }
                     SeverityChip(selected = severity, onSelect = onSeverityChange, multiplierFor = severityMultiplier)
                     Text(stringResource(R.string.confirm_dirt_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(stringResource(R.string.confirm_clutter_summary, clutterLevel.displayName(), looseItemCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
@@ -339,7 +339,7 @@ fun RoomConfirmScreen(
 
             item {
                 OutlinedButton(onClick = { howCountedOpen = true }) {
-                    Icon(Icons.Outlined.HelpOutline, contentDescription = null, modifier = Modifier.size(16.dp))
+                    Icon(Icons.AutoMirrored.Outlined.HelpOutline, contentDescription = null, modifier = Modifier.size(16.dp))
                     Text(" " + stringResource(R.string.confirm_how_counted))
                 }
             }
@@ -386,7 +386,7 @@ fun RoomConfirmScreen(
                 Text(stringResource(R.string.confirm_rule_a), style = MaterialTheme.typography.bodyLarge)
                 Text(stringResource(R.string.confirm_rule_b), style = MaterialTheme.typography.bodyLarge)
                 Text(stringResource(R.string.confirm_rule_c), style = MaterialTheme.typography.bodyLarge, fontWeight = androidx.compose.ui.text.font.FontWeight.Bold)
-                Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                 Row(modifier = Modifier.fillMaxWidth()) {
                     HeaderCell(stringResource(R.string.confirm_col_item), Modifier.weight(1.6f))
                     HeaderCell(stringResource(R.string.confirm_col_length), Modifier.weight(1f))
@@ -395,7 +395,7 @@ fun RoomConfirmScreen(
                     HeaderCell(stringResource(R.string.confirm_col_count), Modifier.weight(1f))
                 }
                 countRows.forEach { row ->
-                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(modifier = Modifier.fillMaxWidth()) {
                         Text(row.label, modifier = Modifier.weight(1.6f))
                         Text(row.length.toString(), modifier = Modifier.weight(1f), textAlign = androidx.compose.ui.text.style.TextAlign.End)

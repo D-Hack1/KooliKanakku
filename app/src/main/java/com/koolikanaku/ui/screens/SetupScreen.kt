@@ -34,6 +34,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
@@ -66,6 +67,8 @@ fun SetupScreen(
     heightCm: String,
     onHeightChange: (String) -> Unit,
     onStartJob: () -> Unit,
+    resumeRoomCount: Int = 0,
+    onResumeJob: () -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -76,14 +79,23 @@ fun SetupScreen(
         modifier = modifier,
         bottomBar = {
             Surface(shadowElevation = 4.dp) {
-                Button(
-                    onClick = onStartJob,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(16.dp)
-                        .height(56.dp)
-                ) {
-                    Text(stringResource(R.string.setup_next_button), style = MaterialTheme.typography.titleLarge)
+                Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    if (resumeRoomCount > 0) {
+                        androidx.compose.material3.OutlinedButton(
+                            onClick = onResumeJob,
+                            modifier = Modifier.fillMaxWidth().height(52.dp)
+                        ) {
+                            Text(pluralStringResource(R.plurals.setup_resume_job, resumeRoomCount, resumeRoomCount), style = MaterialTheme.typography.titleMedium)
+                        }
+                    }
+                    Button(
+                        onClick = onStartJob,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .height(56.dp)
+                    ) {
+                        Text(stringResource(R.string.setup_next_button), style = MaterialTheme.typography.titleLarge)
+                    }
                 }
             }
         }

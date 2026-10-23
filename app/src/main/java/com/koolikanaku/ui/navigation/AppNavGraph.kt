@@ -70,6 +70,9 @@ fun AppNavGraph(
     navController: NavHostController = rememberNavController(),
     vm: AppViewModel = viewModel()
 ) {
+    val storageContext = LocalContext.current
+    remember(vm) { vm.attachStorage(storageContext) }   // restore a saved job before any screen reads state
+
     NavHost(navController = navController, startDestination = Routes.SETUP) {
 
         composable(Routes.SETUP) {
@@ -86,6 +89,10 @@ fun AppNavGraph(
                 onHeightChange = vm::changeHeightCm,
                 darkTheme = vm.darkTheme,
                 onToggleDarkTheme = vm::toggleDarkTheme,
+                resumeRoomCount = vm.job?.rooms?.size ?: 0,
+                onResumeJob = {
+                    navController.navigate(if (vm.quote != null) Routes.BILL else Routes.JOB_HUB)
+                },
                 onStartJob = {
                     vm.startJob()
                     navController.navigate(Routes.JOB_HUB)
@@ -103,7 +110,8 @@ fun AppNavGraph(
                     metaLine1 = room.dimensions?.let { "${it.computedAreaSqFt.toInt()} sq ft" } ?: "Size not set",
                     metaLine2 = "${room.tasks.count { it.isSelected }} tasks selected",
                     timeText = quote?.let { "${formatHours(it.expectedMinutes.low)}-${formatHours(it.expectedMinutes.high)} hr" } ?: "-",
-                    payText = quote?.let { "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}" } ?: "-"
+                    payText = quote?.let { "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}" } ?: "-",
+                    analyzed = (room.dimensions?.computedAreaSqFt ?: 0.0) > 0.0 && (room.photoAnalyses.isNotEmpty() || room.stain != null)
                 )
             }
             val totalLow = job?.rooms.orEmpty().sumOf { room -> job?.let { PricingEngine.quoteRoom(room, it).priceInr.low } ?: 0.0 }

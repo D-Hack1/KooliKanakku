@@ -10,7 +10,9 @@ import com.koolikanaku.ai.analyzeStain
 import com.koolikanaku.ai.detectObjects
 import com.koolikanaku.ai.initDetector
 import com.koolikanaku.ai.measureRoom
+import com.koolikanaku.capture.JobStorage
 import com.koolikanaku.capture.PhotoStore
+import com.koolikanaku.capture.SavedState
 import com.koolikanaku.domain.AnalyzeRoom
 import com.koolikanaku.domain.AppMode
 import com.koolikanaku.domain.CleaningTask
@@ -61,21 +63,28 @@ class AppViewModel : ViewModel() {
     var darkTheme by mutableStateOf(false)
         private set
 
-    fun changeMode(value: AppMode) { mode = value }
-    fun changeLanguage(value: AppLanguage) { language = value }
-    fun changeRateText(value: String) { rateText = value }
-    fun changePaceFactor(value: Double) { paceFactor = value }
-    fun changeHeightCm(value: String) { heightCm = value }
-    fun changeDarkTheme(value: Boolean) { darkTheme = value }
-    fun toggleDarkTheme() { darkTheme = !darkTheme }
+    fun changeMode(value: AppMode) { mode = value; persist() }
+    fun changeLanguage(value: AppLanguage) { language = value; persist() }
+    fun changeRateText(value: String) { rateText = value; persist() }
+    fun changePaceFactor(value: Double) { paceFactor = value; persist() }
+    fun changeHeightCm(value: String) { heightCm = value; persist() }
+    fun changeDarkTheme(value: Boolean) { darkTheme = value; persist() }
+    fun toggleDarkTheme() { darkTheme = !darkTheme; persist() }
 
     // ---- Job state ----
-    var job by mutableStateOf<Job?>(null)
-        private set
-    var currentRoomId by mutableStateOf<String?>(null)
-        private set
-    var quote by mutableStateOf<JobQuote?>(null)
-        private set
+    // Mutating these saves the job to disk (see persist()), so a killed process can resume.
+    private val jobState = mutableStateOf<Job?>(null)
+    var job: Job?
+        get() = jobState.value
+        private set(value) { jobState.value = value; persist() }
+    private val currentRoomIdState = mutableStateOf<String?>(null)
+    var currentRoomId: String?
+        get() = currentRoomIdState.value
+        private set(value) { currentRoomIdState.value = value; persist() }
+    private val quoteState = mutableStateOf<JobQuote?>(null)
+    var quote: JobQuote?
+        get() = quoteState.value
+        private set(value) { quoteState.value = value; persist() }
 
     // ---- Room Capture transient UI state (per current room) ----
     var sizeMethod by mutableStateOf(SizeMethod.ENTER)
@@ -91,21 +100,83 @@ class AppViewModel : ViewModel() {
     var analysisError by mutableStateOf<String?>(null)
         private set
     /** Grime result of each close-up photo (by photo id) from the last analysis; the room keeps only the worst. */
-    var toughScores by mutableStateOf<Map<String, StainResult>>(emptyMap())
-        private set
+    private val toughScoresState = mutableStateOf<Map<String, StainResult>>(emptyMap())
+    var toughScores: Map<String, StainResult>
+        get() = toughScoresState.value
+        private set(value) { toughScoresState.value = value; persist() }
+
+    // ---- Saving and resuming the in-progress job ----
+    private var storageContext: Context? = null
+    private var restoring = false
+    private val saveExecutor = java.util.concurrent.Executors.newSingleThreadExecutor()
+
+    /** Loads a saved job (once) and starts saving every change. Call before the first screen reads state. */
+    fun attachStorage(context: Context) {
+        if (storageContext != null) return
+        val appContext = context.applicationContext
+        storageContext = appContext
+        if (job != null) return   // the in-memory state is newer than whatever is on disk
+        val saved = JobStorage.load(appContext) ?: return
+        restoring = true
+        try {
+            mode = saved.mode
+            language = runCatching { AppLanguage.valueOf(saved.language) }.getOrDefault(AppLanguage.EN)
+            rateText = saved.rateText
+            paceFactor = saved.paceFactor
+            heightCm = saved.heightCm
+            darkTheme = saved.darkTheme
+            sizeMethod = runCatching { SizeMethod.valueOf(saved.sizeMethod) }.getOrDefault(SizeMethod.ENTER)
+            enterLengthFt = saved.enterLengthFt
+            enterWidthFt = saved.enterWidthFt
+            presetIndex = saved.presetIndex
+            toughScores = saved.toughScores
+            job = saved.job
+            currentRoomId = saved.currentRoomId
+            quote = if (saved.finished && saved.job != null && allRoomsHaveSize()) PricingEngine.quoteJob(saved.job) else null
+        } finally {
+            restoring = false
+        }
+    }
+
+    /** True when a saved job with at least one room is loaded, so Setup can offer "Resume". */
+    fun hasResumableJob(): Boolean = job?.rooms?.isNotEmpty() == true
+
+    private fun persist() {
+        val context = storageContext ?: return
+        if (restoring) return
+        val json = JobStorage.toJson(
+            SavedState(
+                job = job, currentRoomId = currentRoomId, finished = quote != null, toughScores = toughScores,
+                mode = mode, language = language.name, rateText = rateText, paceFactor = paceFactor, heightCm = heightCm,
+                darkTheme = darkTheme, sizeMethod = sizeMethod.name, enterLengthFt = enterLengthFt, enterWidthFt = enterWidthFt,
+                presetIndex = presetIndex
+            )
+        )
+        saveExecutor.execute { runCatching { JobStorage.save(context, json) } }
+    }
+
+    /** Blocks until every queued save has reached disk (used by tests). */
+    fun awaitPendingSave() { saveExecutor.submit {}.get() }
+
+    override fun onCleared() {
+        saveExecutor.shutdown()
+    }
 
     val presetOptions = listOf(SizePreset.SMALL, SizePreset.MEDIUM, SizePreset.LARGE)
 
-    fun changeSizeMethod(value: SizeMethod) { sizeMethod = value }
-    fun changeEnterLengthFt(value: String) { enterLengthFt = value }
-    fun changeEnterWidthFt(value: String) { enterWidthFt = value }
-    fun changePresetIndex(value: Int) { presetIndex = value }
+    fun changeSizeMethod(value: SizeMethod) { sizeMethod = value; persist() }
+    fun changeEnterLengthFt(value: String) { enterLengthFt = value; persist() }
+    fun changeEnterWidthFt(value: String) { enterWidthFt = value; persist() }
+    fun changePresetIndex(value: Int) { presetIndex = value; persist() }
     fun clearCaptureError() { captureError = null }
 
     fun startJob() {
         val rate = rateText.toDoubleOrNull()
             ?: if (mode == AppMode.OWNER_QUOTE) Constants.DEFAULT_MARKET_RATE_INR_PER_HR else Constants.DEFAULT_WORKER_RATE_INR_PER_HR
         val height = heightCm.toFloatOrNull()
+        quote = null
+        currentRoomId = null
+        toughScores = emptyMap()
         job = Job(
             id = UUID.randomUUID().toString(),
             mode = mode,

@@ -21,7 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.Add
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Close
 import androidx.compose.material.icons.outlined.PhotoCamera
@@ -107,7 +107,7 @@ fun RoomCaptureScreen(
             topBar = {
                 Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.Top) {
                     IconButton(onClick = onBack) {
-                        Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.capture_back_to_setup))
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.capture_back_to_setup))
                     }
                     Column(modifier = Modifier.padding(top = 10.dp)) {
                         Text(stringResource(R.string.capture_room_title, roomNumber), style = MaterialTheme.typography.headlineMedium)

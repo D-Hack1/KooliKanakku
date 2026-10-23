@@ -23,13 +23,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -108,7 +108,7 @@ fun BillScreen(
         topBar = {
             Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
                 }
                 Column(modifier = Modifier.padding(top = 10.dp)) {
                     Text(title, style = MaterialTheme.typography.headlineMedium)
@@ -149,7 +149,7 @@ fun BillScreen(
                                 Text(totalPayText, style = MaterialTheme.typography.displayLarge)
                             }
                         }
-                        Divider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f))
+                        HorizontalDivider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f))
                         Text(rangeNote, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -168,7 +168,7 @@ fun BillScreen(
                                 Text(room.timeText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         room.tasks.forEach { task ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
@@ -179,7 +179,7 @@ fun BillScreen(
                                 Text(task.minutesText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 12.dp))
                             }
                         }
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("${stringResource(R.string.bill_dirt_label)}: ${room.severityLabel}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -211,7 +211,7 @@ fun BillScreen(
                                         Text(row.label, color = if (row.emphasized) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
                                         Text(row.value, fontWeight = if (row.emphasized) FontWeight.Bold else FontWeight.Normal)
                                     }
-                                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                                 }
                             }
                         }
