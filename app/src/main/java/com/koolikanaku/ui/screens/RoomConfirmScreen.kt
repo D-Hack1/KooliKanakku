@@ -68,6 +68,16 @@ import androidx.compose.ui.platform.LocalContext
 
 enum class ConfirmPhotoTab { WIDE, TOUGHEST }
 
+/** One photo in the Room Confirm viewer: its own boxes (wide shots) or its own grime caption (close-ups). */
+data class ConfirmPhoto(
+    val uri: android.net.Uri,
+    val detections: List<DetectedObject> = emptyList(),
+    val imageWidth: Int = 0,
+    val imageHeight: Int = 0,
+    val caption: String = "",
+    val isWorst: Boolean = false
+)
+
 data class CountRowUi(val label: String, val length: Int, val width: Int, val wide: Int, val count: Int)
 
 /**
@@ -85,6 +95,8 @@ fun RoomConfirmScreen(
     wideImageHeight: Int,
     widePhotoUri: android.net.Uri? = null,
     toughPhotoUri: android.net.Uri? = null,
+    widePhotos: List<ConfirmPhoto> = emptyList(),
+    toughPhotos: List<ConfirmPhoto> = emptyList(),
     toughSummaryText: String,
     roomType: RoomType,
     suggestedRoomType: RoomType?,
@@ -169,7 +181,19 @@ fun RoomConfirmScreen(
                         TabButton(stringResource(R.string.confirm_tab_tough), photoTab == ConfirmPhotoTab.TOUGHEST, { onPhotoTabChange(ConfirmPhotoTab.TOUGHEST) }, Modifier.weight(1f))
                     }
                     val confirmContext = LocalContext.current
-                    val shownPhotoUri = if (photoTab == ConfirmPhotoTab.WIDE) widePhotoUri else toughPhotoUri
+                    val isWideTab = photoTab == ConfirmPhotoTab.WIDE
+                    val wideList = widePhotos.ifEmpty {
+                        if (widePhotoUri != null) listOf(ConfirmPhoto(widePhotoUri, wideDetections, wideImageWidth, wideImageHeight)) else emptyList()
+                    }
+                    val toughList = toughPhotos.ifEmpty {
+                        if (toughPhotoUri != null) listOf(ConfirmPhoto(toughPhotoUri, caption = toughSummaryText)) else emptyList()
+                    }
+                    val photoList = if (isWideTab) wideList else toughList
+                    var selectedWide by remember { mutableStateOf(0) }
+                    var selectedTough by remember { mutableStateOf(toughList.indexOfFirst { it.isWorst }.coerceAtLeast(0)) }
+                    val selectedIndex = (if (isWideTab) selectedWide else selectedTough).coerceIn(0, (photoList.size - 1).coerceAtLeast(0))
+                    val shown = photoList.getOrNull(selectedIndex)
+                    val shownPhotoUri = shown?.uri
                     Surface(
                         shape = RoundedCornerShape(14.dp),
                         color = MaterialTheme.colorScheme.primaryContainer,
@@ -182,11 +206,11 @@ fun RoomConfirmScreen(
                                 .let { m -> if (shownPhotoUri != null) m.clickable { openPhotoExternally(confirmContext, shownPhotoUri) } else m }
                         ) {
                             PhotoImage(uri = shownPhotoUri, modifier = Modifier.fillMaxSize(), cornerRadiusDp = 0)
-                            if (photoTab == ConfirmPhotoTab.WIDE) {
+                            if (isWideTab) {
                                 BoundingBoxOverlay(
-                                    detections = wideDetections,
-                                    imageWidth = wideImageWidth,
-                                    imageHeight = wideImageHeight
+                                    detections = shown?.detections.orEmpty(),
+                                    imageWidth = shown?.imageWidth ?: 0,
+                                    imageHeight = shown?.imageHeight ?: 0
                                 )
                             } else {
                                 Surface(
@@ -195,7 +219,7 @@ fun RoomConfirmScreen(
                                     modifier = Modifier.align(Alignment.BottomStart).padding(10.dp)
                                 ) {
                                     Text(
-                                        toughSummaryText,
+                                        shown?.caption?.takeIf { it.isNotBlank() } ?: toughSummaryText,
                                         color = androidx.compose.ui.graphics.Color(0xFFF5EBE0),
                                         style = MaterialTheme.typography.bodyMedium,
                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
@@ -203,6 +227,20 @@ fun RoomConfirmScreen(
                                 }
                             }
                         }
+                    }
+                    if (photoList.size > 1) {
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.horizontalScroll(rememberScrollState())) {
+                            photoList.forEachIndexed { index, photo ->
+                                Surface(
+                                    shape = RoundedCornerShape(8.dp),
+                                    border = BorderStroke(if (index == selectedIndex) 2.dp else 1.dp, if (index == selectedIndex) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline),
+                                    modifier = Modifier.size(width = 72.dp, height = 54.dp).clickable { if (isWideTab) selectedWide = index else selectedTough = index }
+                                ) {
+                                    PhotoImage(uri = photo.uri, modifier = Modifier.fillMaxSize(), cornerRadiusDp = 0)
+                                }
+                            }
+                        }
+                        if (!isWideTab) Text(toughSummaryText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Text(stringResource(R.string.confirm_box_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
