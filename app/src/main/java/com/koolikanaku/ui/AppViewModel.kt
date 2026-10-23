@@ -26,6 +26,7 @@ import com.koolikanaku.domain.RoomEntry
 import com.koolikanaku.domain.RoomType
 import com.koolikanaku.domain.SeverityLevel
 import com.koolikanaku.domain.SizePreset
+import com.koolikanaku.domain.StainResult
 import com.koolikanaku.domain.SizeSource
 import com.koolikanaku.domain.TaskCatalog
 import com.koolikanaku.domain.TaskMapper
@@ -88,6 +89,9 @@ class AppViewModel : ViewModel() {
         private set
     var analysisError by mutableStateOf<String?>(null)
         private set
+    /** Grime result of each close-up photo (by photo id) from the last analysis; the room keeps only the worst. */
+    var toughScores by mutableStateOf<Map<String, StainResult>>(emptyMap())
+        private set
 
     val presetOptions = listOf(SizePreset.SMALL, SizePreset.MEDIUM, SizePreset.LARGE)
 
@@ -142,7 +146,11 @@ class AppViewModel : ViewModel() {
     fun currentRoom(): RoomEntry? = job?.rooms?.find { it.id == currentRoomId }
 
     fun addPhoto(roomId: String, photo: EvidencePhoto) {
-        updateRoom(roomId) { it.copy(photos = it.photos + photo) }
+        // A retaken measure shot replaces the old one; the measurer reads exactly one shot per side.
+        val single = photo.role == PhotoRole.MEASURE_LENGTH || photo.role == PhotoRole.MEASURE_WIDTH
+        updateRoom(roomId) { room ->
+            room.copy(photos = (if (single) room.photos.filter { it.role != photo.role } else room.photos) + photo)
+        }
     }
 
     fun onCaptureError(message: String) {
@@ -189,6 +197,7 @@ class AppViewModel : ViewModel() {
     suspend fun analyzeRoom(context: Context, roomId: String) {
         val room = job?.rooms?.find { it.id == roomId } ?: return
         analysisError = null
+        val scores = mutableMapOf<String, StainResult>()
         val appContext = context.applicationContext
         val useCase = AnalyzeRoom(
             loadBitmap = { photo ->
@@ -213,11 +222,11 @@ class AppViewModel : ViewModel() {
                 result
             },
             measureRoomFn = ::measureRoom,
-            dummyFallback = false
+            dummyFallback = false,
+            onStainResult = { photo, result -> scores[photo.id] = result }
         )
         try {
             val analyzed = useCase(room)
-            Log.d("AnalyzeFlow", "useCase complete. mergedTasks=${analyzed.tasks.map { "${it.catalogKey}:${it.source}:${it.quantity}" }} clutter=${analyzed.clutter} stain=${analyzed.stain}")
             updateRoom(roomId) { current ->
                 // Keep what the user entered while analysis ran; adopt the suggested type only if none was chosen.
                 val type = if (current.roomType == RoomType.OTHER) analyzed.suggestedRoomType ?: current.roomType else current.roomType

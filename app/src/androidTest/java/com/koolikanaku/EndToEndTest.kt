@@ -32,10 +32,36 @@ class EndToEndTest {
         initDetector(context)
     }
 
-    private fun addPhoto(vm: AppViewModel, roomId: String, name: String, role: PhotoRole) {
+    private fun addPhoto(vm: AppViewModel, roomId: String, name: String, role: PhotoRole, depressionDeg: Float? = null, holdHeightM: Float? = null) {
         val (file, _) = PhotoStore.createCaptureTarget(context)
         File(photoDir, name).copyTo(file, overwrite = true)
-        vm.addPhoto(roomId, PhotoStore.processCapturedFile(context, file, role))
+        vm.addPhoto(roomId, PhotoStore.processCapturedFile(context, file, role, depressionDeg, holdHeightM))
+    }
+
+    @Test fun measureShotsAndSeveralCloseUps(): Unit = runBlocking {
+        assumeTrue("Missing test photos", File(photoDir, "bathroom.jpg").exists() && File(photoDir, "kitchen.jpg").exists())
+        val vm = AppViewModel()
+        vm.startJob()
+        val id = vm.addRoom()
+        vm.changeSizeMethod(SizeMethod.MEASURE)
+        addPhoto(vm, id, "bathroom.jpg", PhotoRole.MEASURE_LENGTH, 30f, 1.4f)   // stale shot, retaken below
+        addPhoto(vm, id, "bathroom.jpg", PhotoRole.MEASURE_LENGTH, 19.3f, 1.4f)
+        addPhoto(vm, id, "bathroom.jpg", PhotoRole.MEASURE_WIDTH, 25f, 1.4f)
+        assertEquals("retake replaces", 1, vm.job!!.rooms.single().photos.count { it.role == PhotoRole.MEASURE_LENGTH })
+        addPhoto(vm, id, "bathroom.jpg", PhotoRole.WIDE)
+        listOf("bathroom.jpg", "kitchen.jpg", "bathroom.jpg").forEach { addPhoto(vm, id, it, PhotoRole.TOUGHEST) }
+        vm.goToRoomConfirmFromCapture(id)
+        vm.analyzeRoom(context, id)
+        assertEquals(null, vm.analysisError)
+        val room = vm.job!!.rooms.single()
+        val dims = room.dimensions!!
+        assertEquals(SizeSource.MEASURED, dims.source)
+        assertEquals(1.4 / Math.tan(Math.toRadians(19.3)) + 0.3, dims.length, 0.01)
+        assertEquals(1.4 / Math.tan(Math.toRadians(25.0)) + 0.3, dims.width, 0.01)
+        val toughIds = room.photos.filter { it.role == PhotoRole.TOUGHEST }.map { it.id }
+        assertEquals("every close-up scored", toughIds.toSet(), vm.toughScores.keys.intersect(toughIds.toSet()))
+        val worst = toughIds.map { vm.toughScores.getValue(it) }.maxWith(compareBy({ it.severity.ordinal }, { it.score }))
+        assertEquals(worst, room.stain)
     }
 
     @Test fun twoRoomJobFlowsToBillAndPdf(): Unit = runBlocking {

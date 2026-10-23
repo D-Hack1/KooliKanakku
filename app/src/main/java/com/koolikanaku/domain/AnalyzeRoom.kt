@@ -11,6 +11,8 @@ class AnalyzeRoom(
     },
     /** True only for dummy-data runs; the real app passes false so an unreadable photo never yields fake results. */
     private val dummyFallback: Boolean = true,
+    /** Called with each close-up's own grime result before the worst one is kept (for per-photo display). */
+    private val onStainResult: (EvidencePhoto, StainResult) -> Unit = { _, _ -> },
     private val measureRoomFn: (EvidencePhoto, EvidencePhoto) -> MeasureResult = { _, _ ->
         MeasureResult(
             dimensions = Constants.computeDimensions(3.6, 3.0, LengthUnit.METRES, SizeSource.MEASURED),
@@ -59,7 +61,7 @@ class AnalyzeRoom(
             toughestPhotos.mapNotNull { photo ->
                 val bitmap = loadBitmap(photo)
                 if (bitmap != null) {
-                    analyzeStainFn(bitmap)
+                    analyzeStainFn(bitmap).also { onStainResult(photo, it) }
                 } else if (dummyFallback) {
                     StainResult(severity = SeverityLevel.MODERATE, score = 42f)
                 } else {

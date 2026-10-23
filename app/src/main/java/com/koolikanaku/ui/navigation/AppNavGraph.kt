@@ -30,6 +30,7 @@ import com.koolikanaku.ui.components.CatalogEntry
 import com.koolikanaku.ui.displayName
 import com.koolikanaku.ui.screens.AnalysisStageUi
 import com.koolikanaku.ui.screens.AnalyzingScreen
+import com.koolikanaku.ui.screens.ConfirmPhoto
 import com.koolikanaku.ui.screens.BillMathRowUi
 import com.koolikanaku.ui.screens.BillPhotoGroupUi
 import com.koolikanaku.ui.screens.BillPhotoUi
@@ -145,23 +146,13 @@ fun AppNavGraph(
                 onPhotoCaptured = { vm.addPhoto(roomId, it) },
                 onError = { vm.onCaptureError(it) }
             )
-            val onLength = rememberCameraFallbackLauncher(
-                role = PhotoRole.MEASURE_LENGTH,
-                onPhotoCaptured = { vm.addPhoto(roomId, it) },
-                onError = { vm.onCaptureError(it) }
-            )
-            val onWidth = rememberCameraFallbackLauncher(
-                role = PhotoRole.MEASURE_WIDTH,
-                onPhotoCaptured = { vm.addPhoto(roomId, it) },
-                onError = { vm.onCaptureError(it) }
-            )
+            var liveMeasureTarget by remember { mutableStateOf<CaptureTarget?>(null) }
 
             fun launchFor(target: CaptureTarget) {
                 when (target) {
                     CaptureTarget.WIDE -> onWide()
                     CaptureTarget.TOUGHEST -> onTough()
-                    CaptureTarget.LENGTH -> onLength()
-                    CaptureTarget.WIDTH -> onWidth()
+                    CaptureTarget.LENGTH, CaptureTarget.WIDTH -> liveMeasureTarget = target
                 }
             }
 
@@ -190,6 +181,19 @@ fun AppNavGraph(
                 }
             }
 
+            // Measure shots use the live CameraX viewfinder so each photo carries the gravity-sensor angle.
+            val liveTarget = liveMeasureTarget
+            if (liveTarget != null) {
+                androidx.activity.compose.BackHandler { liveMeasureTarget = null }
+                com.koolikanaku.capture.CameraCaptureScreen(
+                    role = if (liveTarget == CaptureTarget.LENGTH) PhotoRole.MEASURE_LENGTH else PhotoRole.MEASURE_WIDTH,
+                    holdHeightM = vm.job?.holdHeightM,
+                    onPhotoCaptured = { vm.addPhoto(roomId, it); liveMeasureTarget = null },
+                    onError = { vm.onCaptureError(it); liveMeasureTarget = null }
+                )
+                return@composable
+            }
+
             val widePhotoUris = room.photos.filter { it.role == PhotoRole.WIDE }.map { it.uri }
             val toughPhotoUris = room.photos.filter { it.role == PhotoRole.TOUGHEST }.map { it.uri }
             val wideCount = widePhotoUris.size
@@ -209,7 +213,20 @@ fun AppNavGraph(
                 onSizeMethodChange = vm::changeSizeMethod,
                 lengthShotTaken = lengthTaken,
                 widthShotTaken = widthTaken,
-                measureResultText = if (lengthTaken && widthTaken) "Shots captured - enter exact size on the next screen" else null,
+                measureResultText = run {
+                    val lengthShot = room.photos.lastOrNull { it.role == PhotoRole.MEASURE_LENGTH }
+                    val widthShot = room.photos.lastOrNull { it.role == PhotoRole.MEASURE_WIDTH }
+                    if (lengthShot == null || widthShot == null) null else {
+                        val result = com.koolikanaku.ai.measureRoom(lengthShot, widthShot)
+                        val dims = result.dimensions
+                        val warnings = result.warnings.joinToString { it.name.lowercase().replace('_', ' ') }
+                        when {
+                            dims == null -> "Couldn't measure from these shots - retake them or enter the size instead"
+                            else -> "About ${"%.1f".format(dims.length)} x ${"%.1f".format(dims.width)} m (${dims.computedAreaSqFt.toInt()} sq ft)" +
+                                if (warnings.isNotEmpty()) " - check: $warnings" else ""
+                        }
+                    }
+                },
                 enterLengthFt = vm.enterLengthFt,
                 onEnterLengthChange = vm::changeEnterLengthFt,
                 enterWidthFt = vm.enterWidthFt,
@@ -294,8 +311,33 @@ fun AppNavGraph(
             var photoTab by remember { mutableStateOf(ConfirmPhotoTab.WIDE) }
             var sizeText by remember(roomId) { mutableStateOf(room.dimensions?.computedAreaSqFt?.toInt()?.toString() ?: "") }
 
-            val wideAnalysis = room.photos.firstOrNull { it.role == PhotoRole.WIDE }
-                ?.let { wide -> room.photoAnalyses.find { it.photoId == wide.id } }
+            val analysisByPhoto = room.photoAnalyses.associateBy { it.photoId }
+            val detectionPhotos = room.photos
+                .filter { it.role == PhotoRole.WIDE || it.role == PhotoRole.MEASURE_LENGTH || it.role == PhotoRole.MEASURE_WIDTH }
+                .sortedBy { if (it.role == PhotoRole.WIDE) 0 else 1 }
+            val confirmWidePhotos = detectionPhotos.map { photo ->
+                val analysis = analysisByPhoto[photo.id]
+                ConfirmPhoto(
+                    uri = photo.uri,
+                    detections = analysis?.detections.orEmpty(),
+                    imageWidth = analysis?.imageWidth ?: 0,
+                    imageHeight = analysis?.imageHeight ?: 0
+                )
+            }
+            val toughPhotosList = room.photos.filter { it.role == PhotoRole.TOUGHEST }
+            val worstToughId = toughPhotosList
+                .filter { vm.toughScores.containsKey(it.id) }
+                .maxWithOrNull(compareBy({ vm.toughScores.getValue(it.id).severity.ordinal }, { vm.toughScores.getValue(it.id).score }))?.id
+            val confirmToughPhotos = toughPhotosList.mapIndexed { index, photo ->
+                val result = vm.toughScores[photo.id]
+                ConfirmPhoto(
+                    uri = photo.uri,
+                    caption = if (result == null) "Close-up ${index + 1}: not scored"
+                    else "Close-up ${index + 1}: ${result.severity.name.lowercase()} (score ${result.score.toInt()})" +
+                        if (photo.id == worstToughId && toughPhotosList.size > 1) " - worst, used for the estimate" else "",
+                    isWorst = photo.id == worstToughId
+                )
+            }
             val quote = PricingEngine.quoteRoom(room, job)
             val availableCatalog = com.koolikanaku.domain.TaskCatalog.ITEMS.values
                 .filter { item -> room.tasks.none { it.catalogKey == item.key } }
@@ -305,12 +347,12 @@ fun AppNavGraph(
                 roomNumber = (job.rooms.indexOfFirst { it.id == roomId }) + 1,
                 photoTab = photoTab,
                 onPhotoTabChange = { photoTab = it },
-                wideDetections = wideAnalysis?.detections.orEmpty(),
-                wideImageWidth = wideAnalysis?.imageWidth ?: 0,
-                wideImageHeight = wideAnalysis?.imageHeight ?: 0,
-                widePhotoUri = room.photos.lastOrNull { it.role == PhotoRole.WIDE }?.uri,
-                toughPhotoUri = room.photos.lastOrNull { it.role == PhotoRole.TOUGHEST }?.uri,
-                toughSummaryText = room.stain?.let { "${room.toughPhotoCount()} close-up photo(s). Suggested grime: ${it.severity.name.lowercase()} (score ${it.score.toInt()})" }
+                wideDetections = emptyList(),
+                wideImageWidth = 0,
+                wideImageHeight = 0,
+                widePhotos = confirmWidePhotos,
+                toughPhotos = confirmToughPhotos,
+                toughSummaryText = room.stain?.let { "${room.toughPhotoCount()} close-up photo(s) scored. Worst: ${it.severity.name.lowercase()} (score ${it.score.toInt()}) sets the grime level" }
                     ?: "${room.toughPhotoCount()} close-up photo(s). No automatic grime score - set severity below.",
                 roomType = room.roomType,
                 suggestedRoomType = room.suggestedRoomType,
