@@ -218,8 +218,8 @@ class AppViewModel : ViewModel() {
     fun currentRoom(): RoomEntry? = job?.rooms?.find { it.id == currentRoomId }
 
     fun addPhoto(roomId: String, photo: EvidencePhoto) {
-        // A retaken measure shot replaces the old one; the measurer reads exactly one shot per side.
-        val single = photo.role == PhotoRole.MEASURE_LENGTH || photo.role == PhotoRole.MEASURE_WIDTH
+        // A retaken measure shot (or after photo) replaces the old one: the measurer reads one shot per side, and a room has one after photo.
+        val single = photo.role == PhotoRole.MEASURE_LENGTH || photo.role == PhotoRole.MEASURE_WIDTH || photo.role == PhotoRole.AFTER
         updateRoom(roomId) { room ->
             room.copy(photos = (if (single) room.photos.filter { it.role != photo.role } else room.photos) + photo)
         }

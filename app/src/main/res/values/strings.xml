@@ -250,4 +250,34 @@
         <item quantity="one">%1$d room</item>
         <item quantity="other">%1$d rooms</item>
     </plurals>
+    <string name="capture_light_tip">Good, even light works best. Skip the flash, avoid shadows and wet shine, and keep your hand and phone out of the shot.</string>
+    <string name="confirm_grime_score">Photo grime score: %1$d of 100. Moderate starts at %2$d, heavy at %3$d. It is a guess from colour and shade, so change it if it looks wrong.</string>
+    <string name="confirm_clutter_note">Rough guide only: counts cups, bottles, books and similar small items.</string>
+    <string name="confirm_size_shape_note">Works out the area from a rectangle. For an L-shaped room, type the total area yourself.</string>
+    <string name="bill_after_title">Before and after</string>
+    <string name="bill_after_note">Take one photo of the toughest spot when the work is done. It is saved and hashed like the others.</string>
+    <string name="bill_before_label">Before</string>
+    <string name="bill_after_label">After</string>
+    <string name="bill_after_missing">No after photo yet</string>
+    <string name="bill_after_add">Add after photo</string>
+    <string name="bill_after_retake">Retake after photo</string>
+    <string name="bill_verify_button">Verify photos</string>
+    <string name="verify_title">Verify photos</string>
+    <string name="verify_subtitle">Check that nothing was changed</string>
+    <string name="verify_saved_title">Photos saved on this phone</string>
+    <string name="verify_checking">Checking…</string>
+    <string name="verify_all_intact">All %1$d photos still match their recorded hash.</string>
+    <string name="verify_some_changed">%1$d of %2$d photos do not match their recorded hash (changed or missing).</string>
+    <string name="verify_photo_line">Room %1$d · %2$s</string>
+    <string name="verify_intact">Matches</string>
+    <string name="verify_changed">Changed or missing</string>
+    <string name="verify_file_title">Check a file</string>
+    <string name="verify_file_note">Pick an original photo file. We work out its SHA-256 and look for it in this job.</string>
+    <string name="verify_pick_file">Pick a photo file</string>
+    <string name="verify_match_title">This file is one of the job\'s photos</string>
+    <string name="verify_match_detail">Room %1$d · %2$s · taken %3$s</string>
+    <string name="verify_nomatch_title">No photo in this job has this hash</string>
+    <string name="verify_nomatch_detail">The file is different from every photo recorded here, or it was edited or re-saved.</string>
+    <string name="verify_unreadable">That file could not be read.</string>
+    <string name="verify_limits">A match shows the file is unchanged since it was captured here. It does not prove when it was taken, because a phone clock can be changed.</string>
 </resources>

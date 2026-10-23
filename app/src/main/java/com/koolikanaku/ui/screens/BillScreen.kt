@@ -74,6 +74,14 @@ data class BillRoomUi(
 )
 data class BillPhotoUi(val label: String, val hashShort: String, val fullHash: String, val timeText: String, val uri: android.net.Uri? = null)
 data class BillPhotoGroupUi(val title: String, val photos: List<BillPhotoUi>)
+/** The worst close-up of a room next to its optional after photo (plan.md Section 7, P2). */
+data class BeforeAfterUi(
+    val roomId: String,
+    val roomName: String,
+    val beforeUri: android.net.Uri?,
+    val afterUri: android.net.Uri?,
+    val afterHashShort: String?
+)
 
 /**
  * Bill screen: totals, per-room breakdown with the math shown on request, evidence photos
@@ -91,6 +99,9 @@ fun BillScreen(
     rooms: List<BillRoomUi>,
     photoGroups: List<BillPhotoGroupUi>,
     disclaimer: String,
+    beforeAfter: List<BeforeAfterUi> = emptyList(),
+    onAddAfterPhoto: (String) -> Unit = {},
+    onVerifyPhotos: () -> Unit = {},
     exportSheetVisible: Boolean,
     fileNameText: String,
     pdfMetaText: String,
@@ -219,6 +230,45 @@ fun BillScreen(
                 }
             }
 
+            if (beforeAfter.isNotEmpty()) {
+                item {
+                    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column {
+                                Text(stringResource(R.string.bill_after_title), style = MaterialTheme.typography.titleLarge)
+                                Text(stringResource(R.string.bill_after_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            beforeAfter.forEach { item ->
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(item.roomName, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f)) {
+                                                PhotoImage(uri = item.beforeUri, modifier = Modifier.fillMaxSize())
+                                            }
+                                            Text(stringResource(R.string.bill_before_label), style = MaterialTheme.typography.labelMedium)
+                                        }
+                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f)) {
+                                                if (item.afterUri != null) PhotoImage(uri = item.afterUri, modifier = Modifier.fillMaxSize())
+                                                else Box(contentAlignment = Alignment.Center) { Text(stringResource(R.string.bill_after_missing), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Text(stringResource(R.string.bill_after_label), style = MaterialTheme.typography.labelMedium)
+                                                if (item.afterHashShort != null) HashBadge(item.afterHashShort)
+                                            }
+                                        }
+                                    }
+                                    OutlinedButton(onClick = { onAddAfterPhoto(item.roomId) }, modifier = Modifier.fillMaxWidth()) {
+                                        Text(stringResource(if (item.afterUri == null) R.string.bill_after_add else R.string.bill_after_retake))
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
             item {
                 Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
                     Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -256,6 +306,12 @@ fun BillScreen(
                             }
                         }
                     }
+                }
+            }
+
+            item {
+                OutlinedButton(onClick = onVerifyPhotos, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.bill_verify_button))
                 }
             }
 

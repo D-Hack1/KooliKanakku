@@ -2,6 +2,7 @@ package com.koolikanaku
 
 import androidx.test.platform.app.InstrumentationRegistry
 import com.koolikanaku.ai.initDetector
+import com.koolikanaku.capture.HashVerifier
 import com.koolikanaku.capture.JobStorage
 import com.koolikanaku.capture.PhotoStore
 import com.koolikanaku.domain.PhotoRole
@@ -66,6 +67,51 @@ class EndToEndTest {
         val fresh = AppViewModel()
         fresh.attachStorage(context)
         assertEquals(null, fresh.job)
+    }
+
+    @Test fun afterPhotoVerificationAndTamperDetection(): Unit = runBlocking {
+        assumeTrue("Missing test photos", File(photoDir, "bathroom.jpg").exists() && File(photoDir, "kitchen.jpg").exists())
+        val vm = AppViewModel()
+        vm.startJob()
+        val id = vm.addRoom()
+        addPhoto(vm, id, "bathroom.jpg", PhotoRole.WIDE)
+        addPhoto(vm, id, "bathroom.jpg", PhotoRole.TOUGHEST)
+        addPhoto(vm, id, "bathroom.jpg", PhotoRole.AFTER)
+        addPhoto(vm, id, "kitchen.jpg", PhotoRole.AFTER)   // retake replaces the first after photo
+        vm.setManualSizeSqFt(id, 60.0)
+        vm.goToRoomConfirmFromCapture(id)
+        vm.analyzeRoom(context, id)
+        val room = vm.job!!.rooms.single()
+        assertEquals("one after photo per room", 1, room.photos.count { it.role == PhotoRole.AFTER })
+        assertEquals("after photos are never analyzed", 1, room.photoAnalyses.size)
+        assertTrue(room.photoAnalyses.none { a -> room.photos.first { it.id == a.photoId }.role == PhotoRole.AFTER })
+
+        vm.selectAllTasks(id, true)
+        assertTrue(vm.finishJob())
+        val worst = room.photos.first { it.role == PhotoRole.TOUGHEST }.id
+        val pdf = PdfExporter.exportBillPdf(context, vm.job!!, vm.quote!!, mapOf(id to worst))
+        val bytes = context.contentResolver.openInputStream(pdf)!!.use { it.readBytes() }
+        assertEquals("%PDF", String(bytes.copyOf(4)))
+
+        // every saved photo still matches its recorded hash
+        val checks = HashVerifier.checkSavedPhotos(context, vm.job!!)
+        assertEquals(room.photos.size, checks.size)
+        assertTrue(checks.all { it.intact })
+
+        // the original file matches by hash; an unrelated file does not
+        val after = room.photos.first { it.role == PhotoRole.AFTER }
+        val match = HashVerifier.findMatch(vm.job!!, HashVerifier.hashOf(context, after.uri)!!)
+        assertNotNull(match)
+        assertEquals(PhotoRole.AFTER, match!!.photo.role)
+        val unrelated = File(context.cacheDir, "unrelated.bin").apply { writeBytes(ByteArray(2048) { (it * 31).toByte() }) }
+        assertEquals(null, HashVerifier.findMatch(vm.job!!, com.koolikanaku.capture.CryptoUtils.sha256(unrelated)))
+
+        // editing a saved photo is detected
+        val file = PhotoStore.getFileFromUri(context, after.uri)!!
+        file.appendBytes(byteArrayOf(0))
+        val rechecked = HashVerifier.checkSavedPhotos(context, vm.job!!)
+        assertEquals(false, rechecked.first { it.photo.id == after.id }.intact)
+        assertEquals(room.photos.size - 1, rechecked.count { it.intact })
     }
 
     @Test fun finishIsBlockedUntilEveryRoomHasASize() {

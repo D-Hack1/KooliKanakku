@@ -1,5 +1,7 @@
 package com.koolikanaku.ui.navigation
 
+import kotlinx.coroutines.launch
+import com.koolikanaku.ui.screens.BeforeAfterUi
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.koolikanaku.R
@@ -63,6 +65,7 @@ object Routes {
     const val ROOM_CONFIRM = "room_confirm/{roomId}"
     fun roomConfirm(roomId: String) = "room_confirm/$roomId"
     const val BILL = "bill"
+    const val VERIFY = "verify"
 }
 
 @Composable
@@ -398,6 +401,14 @@ fun AppNavGraph(
                     else -> null
                 },
                 canSave = (room.dimensions?.computedAreaSqFt ?: 0.0) > 0.0,
+                grimeScoreText = room.stain?.let {
+                    stringResource(
+                        R.string.confirm_grime_score,
+                        it.score.toInt(),
+                        com.koolikanaku.ai.MODERATE_CUTOFF.toInt(),
+                        com.koolikanaku.ai.HEAVY_CUTOFF.toInt()
+                    )
+                },
                 severity = room.severityOverride ?: room.stain?.severity ?: SeverityLevel.LIGHT,
                 severityOverridden = room.severityOverride != null,
                 suggestedSeverityLabel = room.stain?.severity?.name?.lowercase() ?: "N/A",
@@ -436,6 +447,21 @@ fun AppNavGraph(
             var exportSheetVisible by remember { mutableStateOf(false) }
             var lastPdfUri by remember { mutableStateOf<android.net.Uri?>(null) }
 
+            var pendingAfterRoom by remember { mutableStateOf<String?>(null) }
+            val afterLauncher = rememberCameraFallbackLauncher(
+                role = PhotoRole.AFTER,
+                onPhotoCaptured = { photo ->
+                    pendingAfterRoom?.let { vm.addPhoto(it, photo) }
+                    pendingAfterRoom = null
+                },
+                onError = { pendingAfterRoom = null; vm.onCaptureError(it) }
+            )
+            val afterPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+            ) { granted ->
+                if (granted) afterLauncher() else { pendingAfterRoom = null; vm.onCaptureError("Camera permission is required to take photos") }
+            }
+
             if (job == null || jobQuote == null) return@composable
 
             val billRooms = job.rooms.mapIndexed { index, room ->
@@ -457,10 +483,10 @@ fun AppNavGraph(
                             }
                         )
                     },
-                    severityLabel = (room.severityOverride ?: SeverityLevel.LIGHT).name,
-                    severityMultText = "x${com.koolikanaku.domain.Constants.GRIME_MULTIPLIER[room.severityOverride ?: SeverityLevel.LIGHT]}",
+                    severityLabel = (room.severityOverride ?: room.stain?.severity ?: SeverityLevel.LIGHT).name,
+                    severityMultText = "x${com.koolikanaku.domain.Constants.GRIME_MULTIPLIER[room.severityOverride ?: room.stain?.severity ?: SeverityLevel.LIGHT]}",
                     severityEdited = room.severityOverride != null,
-                    aiSaidText = "manual",
+                    aiSaidText = room.stain?.severity?.name?.lowercase() ?: "manual",
                     clutterLabel = room.clutter.name,
                     clutterMultText = "x${com.koolikanaku.domain.Constants.CLUTTER_MULTIPLIER[room.clutter]}",
                     mathRows = listOfNotNull(
@@ -485,21 +511,51 @@ fun AppNavGraph(
                 )
             }
 
+            val worstToughByRoom = job.rooms.mapNotNull { room ->
+                val worst = room.photos.filter { it.role == PhotoRole.TOUGHEST && vm.toughScores.containsKey(it.id) }
+                    .maxWithOrNull(compareBy({ vm.toughScores.getValue(it.id).severity.ordinal }, { vm.toughScores.getValue(it.id).score }))
+                    ?: room.photos.lastOrNull { it.role == PhotoRole.TOUGHEST }
+                worst?.let { room.id to it.id }
+            }.toMap()
+            val beforeAfter = job.rooms.mapIndexedNotNull { index, room ->
+                val beforeId = worstToughByRoom[room.id] ?: return@mapIndexedNotNull null
+                val after = room.photos.lastOrNull { it.role == PhotoRole.AFTER }
+                BeforeAfterUi(
+                    roomId = room.id,
+                    roomName = "Room ${index + 1}",
+                    beforeUri = room.photos.firstOrNull { it.id == beforeId }?.uri,
+                    afterUri = after?.uri,
+                    afterHashShort = after?.sha256Hash?.take(10)
+                )
+            }
+
             BillScreen(
+                beforeAfter = beforeAfter,
+                onAddAfterPhoto = { roomId ->
+                    pendingAfterRoom = roomId
+                    val hasPermission = androidx.core.content.ContextCompat.checkSelfPermission(
+                        context, android.Manifest.permission.CAMERA
+                    ) == android.content.pm.PackageManager.PERMISSION_GRANTED
+                    if (hasPermission) afterLauncher() else afterPermissionLauncher.launch(android.Manifest.permission.CAMERA)
+                },
+                onVerifyPhotos = { navController.navigate(Routes.VERIFY) },
                 title = if (job.mode == AppMode.OWNER_QUOTE) "Cleaning Quotation" else "Cleaning Estimate",
-                subtitleLine = "${job.rooms.size} room(s)",
+                subtitleLine = "${job.rooms.size} room(s) · " + stringResource(
+                    if (job.mode == AppMode.OWNER_QUOTE) R.string.bill_rate_market else R.string.bill_rate_per_hour,
+                    job.hourlyRateInr.toInt().toString()
+                ),
                 totalTimeText = "${formatHours(jobQuote.totalExpectedMinutes.low)}-${formatHours(jobQuote.totalExpectedMinutes.high)}",
                 payLabel = if (job.mode == AppMode.OWNER_QUOTE) "Quoted" else "You earn",
                 totalPayText = "₹${jobQuote.totalPriceInr.low.toInt()}-₹${jobQuote.totalPriceInr.high.toInt()}",
                 rangeNote = "Range reflects how each room's size was obtained.",
                 rooms = billRooms,
                 photoGroups = photoGroups,
-                disclaimer = "Estimate computed on-device. Hashes are of the original captures.",
+                disclaimer = stringResource(R.string.bill_disclaimer),
                 exportSheetVisible = exportSheetVisible,
                 fileNameText = lastPdfUri?.lastPathSegment ?: "cleaning_estimate.pdf",
                 pdfMetaText = "${job.rooms.size} rooms",
                 onExportPdf = {
-                    val uri = PdfExporter.exportBillPdf(context, job, jobQuote)
+                    val uri = PdfExporter.exportBillPdf(context, job, jobQuote, worstToughByRoom)
                     lastPdfUri = uri
                     exportSheetVisible = true
                 },
@@ -507,6 +563,40 @@ fun AppNavGraph(
                     lastPdfUri?.let { PdfExporter.sharePdf(context, it) }
                 },
                 onDismissExportSheet = { exportSheetVisible = false },
+                onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.VERIFY) {
+            val context = LocalContext.current
+            val job = vm.job ?: return@composable
+            var savedChecks by remember { mutableStateOf<List<com.koolikanaku.capture.HashVerifier.PhotoCheck>?>(null) }
+            var fileResult by remember { mutableStateOf<com.koolikanaku.ui.screens.FileCheckResult?>(null) }
+            LaunchedEffect(job) {
+                savedChecks = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                    com.koolikanaku.capture.HashVerifier.checkSavedPhotos(context, job)
+                }
+            }
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            val picker = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.OpenDocument()
+            ) { uri ->
+                if (uri != null) scope.launch {
+                    val hash = kotlinx.coroutines.withContext(kotlinx.coroutines.Dispatchers.IO) {
+                        com.koolikanaku.capture.HashVerifier.hashOf(context, uri)
+                    }
+                    fileResult = when {
+                        hash == null -> com.koolikanaku.ui.screens.FileCheckResult.Unreadable
+                        else -> com.koolikanaku.capture.HashVerifier.findMatch(job, hash)
+                            ?.let { com.koolikanaku.ui.screens.FileCheckResult.Match(it, hash) }
+                            ?: com.koolikanaku.ui.screens.FileCheckResult.NoMatch(hash)
+                    }
+                }
+            }
+            com.koolikanaku.ui.screens.VerifyHashScreen(
+                savedChecks = savedChecks,
+                fileResult = fileResult,
+                onPickFile = { picker.launch(arrayOf("image/*")) },
                 onBack = { navController.popBackStack() }
             )
         }

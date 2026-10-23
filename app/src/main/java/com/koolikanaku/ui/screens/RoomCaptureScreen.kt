@@ -256,6 +256,11 @@ fun RoomCaptureScreen(
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
+                            Text(
+                                stringResource(R.string.capture_light_tip),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                                 toughPhotos.forEach { uri ->
                                     PhotoThumb(uri = uri, onClick = { openPhotoExternally(context, uri) })

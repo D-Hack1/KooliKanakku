@@ -15,6 +15,7 @@ import com.koolikanaku.capture.PhotoStore
 import com.koolikanaku.domain.AppMode
 import com.koolikanaku.domain.Job
 import com.koolikanaku.domain.JobQuote
+import com.koolikanaku.domain.EvidencePhoto
 import com.koolikanaku.domain.PhotoRole
 import com.koolikanaku.domain.RoomEntry
 import com.koolikanaku.domain.RoomQuote
@@ -36,10 +37,15 @@ object PdfExporter {
      *
      * @return FileProvider Uri for sharing via ACTION_SEND.
      */
-    fun exportBillPdf(context: Context, job: Job, quote: JobQuote): Uri {
+    fun exportBillPdf(
+        context: Context,
+        job: Job,
+        quote: JobQuote,
+        worstToughByRoom: Map<String, String> = emptyMap()
+    ): Uri {
         val document = PdfDocument()
 
-        val pdfHelper = DocumentBuilder(context, document, job, quote)
+        val pdfHelper = DocumentBuilder(context, document, job, quote, worstToughByRoom)
         pdfHelper.build()
 
         // Save PDF to cache directory
@@ -76,7 +82,8 @@ object PdfExporter {
         private val context: Context,
         private val document: PdfDocument,
         private val job: Job,
-        private val quote: JobQuote
+        private val quote: JobQuote,
+        private val worstToughByRoom: Map<String, String>
     ) {
         private var pageNumber = 1
         private var currentPage: PdfDocument.Page? = null
@@ -158,7 +165,7 @@ object PdfExporter {
             drawEvidenceAppendix()
 
             // Mandatory Disclaimer
-            ensureSpace(50f)
+            ensureSpace(64f)
             drawDisclaimer()
 
             finishCurrentPage()
@@ -210,7 +217,7 @@ object PdfExporter {
             val cardRect = RectF(MARGIN, currentY, PAGE_WIDTH - MARGIN, currentY + 44f)
             canvas?.drawRoundRect(cardRect, 6f, 6f, boxBgPaint)
 
-            canvas?.drawText("Worker Rate: ₹%.0f/hr".format(job.hourlyRateInr), MARGIN + 12f, currentY + 18f, bodyBoldPaint)
+            canvas?.drawText("${if (job.mode == AppMode.OWNER_QUOTE) "Market Rate" else "Worker Rate"}: ₹%.0f/hr".format(job.hourlyRateInr), MARGIN + 12f, currentY + 18f, bodyBoldPaint)
             canvas?.drawText("Pace Multiplier: %.2fx".format(job.paceFactor), MARGIN + 12f, currentY + 34f, bodyTextPaint)
 
             canvas?.drawText("Total Rooms: ${job.rooms.size}", MARGIN + 220f, currentY + 18f, bodyBoldPaint)
@@ -269,8 +276,39 @@ object PdfExporter {
                 drawRoomPhotoThumbnails(room)
             }
 
+            // Before / after of the toughest spot
+            val afterPhoto = room.photos.lastOrNull { it.role == PhotoRole.AFTER }
+            if (afterPhoto != null) {
+                val toughPhotos = room.photos.filter { it.role == PhotoRole.TOUGHEST }
+                val beforePhoto = toughPhotos.firstOrNull { it.id == worstToughByRoom[room.id] } ?: toughPhotos.lastOrNull()
+                if (beforePhoto != null) drawBeforeAfter(beforePhoto, afterPhoto)
+            }
+
             canvas?.drawLine(MARGIN, currentY, PAGE_WIDTH - MARGIN, currentY, linePaint)
             currentY += 14f
+        }
+
+        private fun drawBeforeAfter(before: EvidencePhoto, after: EvidencePhoto) {
+            val photoWidth = 170f
+            val photoHeight = 120f
+            ensureSpace(photoHeight + 56f)
+            canvas?.drawText("Before / After (toughest spot)", MARGIN + 8f, currentY + 10f, bodyBoldPaint)
+            currentY += 16f
+
+            listOf("Before" to before, "After" to after).forEachIndexed { i, (label, photo) ->
+                val x = MARGIN + 8f + i * (photoWidth + 16f)
+                val bitmap = try {
+                    PhotoStore.getDownscaledBitmap(context, photo.uri, maxLongEdge = 480)
+                } catch (e: Exception) {
+                    null
+                }
+                if (bitmap != null) {
+                    canvas?.drawBitmap(bitmap, null, RectF(x, currentY, x + photoWidth, currentY + photoHeight), null)
+                }
+                canvas?.drawText("$label  ${photo.timestampIso.take(19)}", x, currentY + photoHeight + 11f, bodyTextPaint)
+                canvas?.drawText(photo.sha256Hash.take(24) + "...", x, currentY + photoHeight + 22f, subTitlePaint)
+            }
+            currentY += photoHeight + 32f
         }
 
         private fun drawRoomPhotoThumbnails(room: RoomEntry) {
@@ -346,7 +384,7 @@ object PdfExporter {
         }
 
         private fun drawDisclaimer() {
-            val disclaimerText = "Disclaimer: Estimate computed completely on-device. Hashes are of the original captures.\nEmbedded photos are downscaled for document portability. KooliKanakku operates 100% offline."
+            val disclaimerText = "Disclaimer: Estimate computed completely on-device. Hashes are of the original captures.\nEmbedded photos are downscaled for document portability.\nTamper-evident, not tamper-proof: a phone clock can be changed.\nKooliKanakku operates 100% offline."
             val lines = disclaimerText.split("\n")
             lines.forEach { line ->
                 canvas?.drawText(line, MARGIN, currentY, subTitlePaint)

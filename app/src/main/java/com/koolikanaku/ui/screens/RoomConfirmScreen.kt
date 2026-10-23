@@ -107,6 +107,7 @@ fun RoomConfirmScreen(
     dimsNote: String?,
     sizeProblem: String? = null,
     canSave: Boolean = true,
+    grimeScoreText: String? = null,
     severity: SeverityLevel,
     severityOverridden: Boolean,
     suggestedSeverityLabel: String,
@@ -303,6 +304,7 @@ fun RoomConfirmScreen(
                     if (dimsNote != null) {
                         Text(dimsNote, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    Text(stringResource(R.string.confirm_size_shape_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
@@ -321,10 +323,14 @@ fun RoomConfirmScreen(
                     }
                     SeverityChip(selected = severity, onSelect = onSeverityChange, multiplierFor = severityMultiplier)
                     Text(stringResource(R.string.confirm_dirt_hint), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    if (grimeScoreText != null) {
+                        Text(grimeScoreText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                     HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text(stringResource(R.string.confirm_clutter_summary, clutterLevel.displayName(), looseItemCount), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
+                    Text(stringResource(R.string.confirm_clutter_note), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
 
