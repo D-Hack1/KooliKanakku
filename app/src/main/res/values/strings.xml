@@ -1,3 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">KooliKanaku</string>
+
+    <!-- Common -->
+    <string name="common_back">Back</string>
+    <string name="common_cancel">Cancel</string>
+    <string name="common_done">Done</string>
+    <string name="common_add">Add</string>
+    <string name="offline_badge">Offline</string>
+    <string name="language_english">English</string>
+    <string name="language_malayalam">മലയാളം</string>
+
+    <!-- Shared enums -->
+    <string name="room_type_kitchen">Kitchen</string>
+    <string name="room_type_bathroom">Bathroom</string>
+    <string name="room_type_bedroom">Bedroom</string>
+    <string name="room_type_living_room">Living room</string>
+    <string name="room_type_other">Other</string>
+
+    <string name="severity_light">Light</string>
+    <string name="severity_moderate">Moderate</string>
+    <string name="severity_heavy">Heavy</string>
+
+    <string name="clutter_low">Low</string>
+    <string name="clutter_medium">Medium</string>
+    <string name="clutter_high">High</string>
+
+    <string name="task_source_detected">Seen in photo</string>
+    <string name="task_source_template">Suggested for this room</string>
+    <string name="task_source_manual">Added by you</string>
+
+    <string name="mode_worker_estimate">Worker estimate</string>
+    <string name="mode_owner_quote">Owner quote</string>
+
+    <!-- Setup screen -->
+    <string name="setup_title">Set up your job</string>
+    <string name="setup_tagline">Fair pay, worked out together.</string>
+    <string name="setup_who_question">Who is this for?</string>
+    <string name="setup_worker_title">Worker estimate</string>
+    <string name="setup_worker_subtitle">I clean. What is fair to charge?</string>
+    <string name="setup_owner_title">Owner quote</string>
+    <string name="setup_owner_subtitle">I own the home. What is fair to pay?</string>
+    <string name="setup_rate_worker_label">Your hourly rate</string>
+    <string name="setup_rate_owner_label">Market rate</string>
+    <string name="setup_rate_worker_hint">You set this. Everything else is built on it.</string>
+    <string name="setup_rate_owner_hint">A starting rate for your area. Change it if you agree on another.</string>
+    <string name="setup_per_hour">per hour</string>
+    <string name="setup_pace_label">Your pace</string>
+    <string name="setup_pace_hint">changes the time shown</string>
+    <string name="setup_pace_fast">Fast</string>
+    <string name="setup_pace_standard">Standard</string>
+    <string name="setup_pace_thorough">Thorough</string>
+    <string name="setup_pace_note">Pace never changes the price. A faster worker is not paid less.</string>
+    <string name="setup_height_label">Your height</string>
+    <string name="setup_height_optional">optional</string>
+    <string name="setup_height_hint">Only used to measure rooms with the camera. Left blank, we assume a 1.25 m hold height.</string>
+    <string name="setup_height_unit">cm</string>
+    <string name="setup_owner_pace_note">Owner quotes use standard pace (1.0×).</string>
+    <string name="setup_owner_time_note">The time shown is the standard time for the job.</string>
+    <string name="setup_next_button">Start first room</string>
+
+    <!-- Room capture screen -->
+    <string name="capture_back_to_setup">Back to setup</string>
+    <string name="capture_room_title">Room %1$d</string>
+    <string name="capture_intro">Take your photos first. We only look at them after you tap Analyze room.</string>
+    <string name="capture_size_question">How big is the room?</string>
+    <string name="capture_method_measure">Measure</string>
+    <string name="capture_method_enter">Enter size</string>
+    <string name="capture_method_preset">Preset</string>
+    <string name="capture_measure_tip">Stand in a corner with your back to both walls.</string>
+    <string name="capture_length_label">Length</string>
+    <string name="capture_width_label">Width</string>
+    <string name="capture_take_shot">Take shot</string>
+    <string name="capture_retake">Retake</string>
+    <string name="capture_measure_note">Measured from your phone tilt. Usually within about 20%. You can edit it later.</string>
+    <string name="capture_length_ft">Length (ft)</string>
+    <string name="capture_width_ft">Width (ft)</string>
+    <string name="capture_preset_small">Small</string>
+    <string name="capture_preset_medium">Medium</string>
+    <string name="capture_preset_large">Large</string>
+    <string name="capture_wide_title">Wide view</string>
+    <string name="capture_wide_hint_recommended">Recommended. Your two measuring shots also count as wide views.</string>
+    <string name="capture_wide_hint_required">Required. Step back so most of the room fits.</string>
+    <string name="capture_toughest_title">Toughest spot</string>
+    <string name="capture_toughest_hint">Fill the frame with the dirtiest surface, like stained tile or a greasy hob. Pick a typical dirty patch.</string>
+    <string name="capture_close_up">Take close-up</string>
+    <string name="capture_photo_button">Photo</string>
+    <string name="capture_analyze_button">Analyze room</string>
+    <string name="capture_sheet_which_photo">Which photo?</string>
+    <string name="capture_sheet_close_up_full">Close-up of the toughest spot</string>
+    <string name="capture_need_size">Add the room size to continue</string>
+    <string name="capture_need_wide">Add a wide photo to continue</string>
+    <string name="capture_need_tough">Add a close-up of the toughest spot to continue</string>
+    <string name="capture_photos_ready">%1$d photos ready · scanned after you tap Analyze</string>
+    <string name="capture_cam_length_title">Length shot · 1 of 2</string>
+    <string name="capture_cam_width_title">Width shot · 2 of 2</string>
+    <string name="capture_cam_wide_title">Wide view</string>
+    <string name="capture_cam_tough_title">Toughest spot</string>
+    <string name="capture_prompt_length">Aim the cross at the far end of the wall at your side, where it meets the floor.</string>
+    <string name="capture_prompt_width">Turn 90°. Aim the cross at the far end of the other wall, where it meets the floor.</string>
+    <string name="capture_prompt_wide">Step back so most of the room fits in the frame.</string>
+    <string name="capture_prompt_tough">Get close. Fill the frame with the dirtiest surface.</string>
+    <string name="capture_no_scan_yet">Not scanned yet. Objects are read after you tap Analyze room.</string>
+    <string name="capture_tilt_label">Tilt</string>
+    <string name="capture_distance_label">Distance</string>
+    <string name="capture_side_label">Side</string>
+    <string name="capture_hold_steady">Hold steady…</string>
+    <string name="capture_steady_ok">Steady</string>
+    <string name="capture_shutter">Take photo</string>
+    <string name="capture_measure_result">≈ %1$s × %2$s · %3$d sq ft</string>
+    <string name="capture_enter_result">≈ %1$d sq ft</string>
+
+    <!-- Analyzing screen -->
+    <string name="analyzing_title">Looking at your photos</string>
+    <string name="analyzing_comparing">Comparing patches to the surface colour</string>
+    <string name="analyzing_stage_length">Reading the length shot…</string>
+    <string name="analyzing_stage_width">Reading the width shot…</string>
+    <string name="analyzing_stage_wide">Reading the wide photo…</string>
+    <string name="analyzing_stage_tough">Checking the toughest spot…</string>
+    <string name="analyzing_stage_merge">Putting it together…</string>
+    <string name="analyzing_row_length">Length shot: find objects</string>
+    <string name="analyzing_row_width">Width shot: find objects</string>
+    <string name="analyzing_row_wide">Wide photo: find objects</string>
+    <string name="analyzing_row_tough">Toughest spot: stain check</string>
+    <string name="analyzing_row_merge">Merge counts across photos</string>
+    <string name="analyzing_thumb_length">Length</string>
+    <string name="analyzing_thumb_width">Width</string>
+    <string name="analyzing_thumb_wide">Wide</string>
+    <string name="analyzing_thumb_tough">Toughest</string>
+    <string name="analyzing_privacy_note">Runs on this phone. Photos never leave it.</string>
+    <string name="analyzing_review_button">Review the room</string>
+    <string name="analyzing_working">Analyzing…</string>
+    <string name="analyzing_suggested_severity">Suggested: %1$s</string>
+    <string name="analyzing_suggested_room_type">Looks like a %1$s</string>
+
+    <!-- Room confirm screen -->
+    <string name="confirm_title">Check the room</string>
+    <string name="confirm_subtitle">Room %1$d · you decide what gets cleaned</string>
+    <string name="confirm_tab_wide">Wide view</string>
+    <string name="confirm_tab_tough">Toughest spot</string>
+    <string name="confirm_box_hint">Boxes show what the scan found. You decide what gets cleaned.</string>
+    <string name="confirm_tough_stats">Stained %1$d%% · Darker %2$d%% · Score %3$d/100</string>
+    <string name="confirm_room_type_label">Room type</string>
+    <string name="confirm_room_type_suggested">Suggested from what was found: %1$s. Change it if it is wrong.</string>
+    <string name="confirm_size_label">Room size</string>
+    <string name="confirm_sqft_unit">sq ft</string>
+    <string name="confirm_size_measured">Measured · ±20%</string>
+    <string name="confirm_size_manual">Typed in · ±10%</string>
+    <string name="confirm_size_preset">Preset · ±25%</string>
+    <string name="confirm_dims_note">%1$s from your two shots</string>
+    <string name="confirm_dirt_label">How dirty is it?</string>
+    <string name="confirm_dirt_hint">Suggested from your toughest-spot photo. Tap to change.</string>
+    <string name="confirm_edited_badge">edited</string>
+    <string name="confirm_ai_said">AI said %1$s</string>
+    <string name="confirm_clutter_summary">Clutter: %1$s · %2$d loose items</string>
+    <string name="confirm_list_title">What is being cleaned</string>
+    <string name="confirm_select_all">Select all</string>
+    <string name="confirm_clear_all">Clear all</string>
+    <string name="confirm_how_counted">How we counted</string>
+    <string name="confirm_minutes_unit">min</string>
+    <string name="confirm_task_minutes">%1$d min × %2$d = %3$d min</string>
+    <string name="confirm_decrease_quantity">One less: %1$s</string>
+    <string name="confirm_increase_quantity">One more: %1$s</string>
+    <string name="confirm_add_task">Add a task we missed</string>
+    <string name="confirm_add_task_title">Add a task</string>
+    <string name="confirm_no_more_tasks">Every task is already on the list.</string>
+    <string name="confirm_estimate_label">Est. time and pay</string>
+    <string name="confirm_save_room">Save room</string>
+    <string name="confirm_rule_a">Length shot + width shot are added. They look about 90° apart and barely overlap.</string>
+    <string name="confirm_rule_b">Wide photos are compared by the best single photo, so one object is never counted twice.</string>
+    <string name="confirm_rule_c">Count = the larger of the two.</string>
+    <string name="confirm_col_item">Item</string>
+    <string name="confirm_col_length">Length</string>
+    <string name="confirm_col_width">Width</string>
+    <string name="confirm_col_wide">Wide</string>
+    <string name="confirm_col_count">Count</string>
+    <string name="confirm_count_limit_note">This is a rule of thumb. Fix any count with + and −.</string>
+
+    <!-- Job hub screen -->
+    <string name="jobhub_title">Your job</string>
+    <string name="jobhub_rooms_count">%1$d rooms</string>
+    <string name="jobhub_rate_per_hour">₹%1$s per hour</string>
+    <string name="jobhub_pace_standard">Standard pace 1.0×</string>
+    <string name="jobhub_room_confirmed">Confirmed</string>
+    <string name="jobhub_room_meta_size">%1$d sq ft · %2$s</string>
+    <string name="jobhub_room_meta_tasks">%1$d tasks · Dirt: %2$s</string>
+    <string name="jobhub_room_time">%1$s–%2$s hrs</string>
+    <string name="jobhub_add_room">Add another room</string>
+    <string name="jobhub_add_first_room">Add your first room</string>
+    <string name="jobhub_finish_button">Finish and get bill</string>
+    <string name="jobhub_total_label">Job total</string>
+    <string name="jobhub_empty_title">No rooms yet</string>
+    <string name="jobhub_empty_subtitle">Add your first room, take a few photos, and we will work out the price together.</string>
+    <string name="jobhub_tap_hint">Tap a room to change what is ticked.</string>
+
+    <!-- Bill screen -->
+    <string name="bill_title_worker">Cleaning Estimate</string>
+    <string name="bill_title_owner">Cleaning Quotation</string>
+    <string name="bill_rate_per_hour">₹%1$s per hour</string>
+    <string name="bill_rate_market">₹%1$s per hour (market rate)</string>
+    <string name="bill_time_label">Time</string>
+    <string name="bill_hours_unit">hours</string>
+    <string name="bill_pay_label">Pay</string>
+    <string name="bill_quote_label">Quote</string>
+    <string name="bill_range_note">ranges show how sure we are of the room sizes</string>
+    <string name="bill_rate_short">at ₹%1$s per hour</string>
+    <string name="bill_col_task">Task</string>
+    <string name="bill_col_qty">Qty</string>
+    <string name="bill_col_min">Min</string>
+    <string name="bill_dirt_label">Dirt</string>
+    <string name="bill_clutter_label">Clutter</string>
+    <string name="bill_show_math">Show the math</string>
+    <string name="bill_math_floor">Floor</string>
+    <string name="bill_math_tasks">Tasks</string>
+    <string name="bill_math_cond">Dirt and clutter</string>
+    <string name="bill_math_std">Standard time</string>
+    <string name="bill_math_labour">Labour</string>
+    <string name="bill_math_materials">Materials</string>
+    <string name="bill_math_price">Price</string>
+    <string name="bill_math_range">Range</string>
+    <string name="bill_math_pace">Pace (time only)</string>
+    <string name="bill_evidence_title">Photos and hashes</string>
+    <string name="bill_evidence_note">Tap a photo for its full hash and time.</string>
+    <string name="bill_hash_of">SHA-256 of the exact saved file</string>
+    <string name="bill_taken_label">Taken</string>
+    <string name="bill_disclaimer">Estimate computed on-device. Hashes are of the original captures. Tamper-evident, not tamper-proof: a phone clock can be changed.</string>
+    <string name="bill_export_pdf">Export PDF</string>
+    <string name="bill_share">Share</string>
+    <string name="bill_pdf_ready">PDF ready</string>
+    <string name="bill_pdf_meta">2 pages · English only</string>
+    <string name="bill_share_dots">Share…</string>
+    <string name="bill_pdf_note">Photos in the PDF are shrunk to keep the file small, so each printed hash refers to the original photo file. The PDF says this too.</string>
 </resources>

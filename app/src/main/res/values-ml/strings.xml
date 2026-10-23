@@ -1,3 +1,234 @@
+<?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="app_name">കൂലികണക്ക്</string>
+
+    <!-- Common -->
+    <string name="common_back">തിരികെ</string>
+    <string name="common_cancel">റദ്ദാക്കുക</string>
+    <string name="common_done">തീർന്നു</string>
+    <string name="common_add">ചേർക്കുക</string>
+    <string name="offline_badge">ഓഫ്‌ലൈൻ</string>
+    <string name="language_english">English</string>
+    <string name="language_malayalam">മലയാളം</string>
+
+    <!-- Shared enums -->
+    <string name="room_type_kitchen">അടുക്കള</string>
+    <string name="room_type_bathroom">കുളിമുറി</string>
+    <string name="room_type_bedroom">കിടപ്പുമുറി</string>
+    <string name="room_type_living_room">സ്വീകരണമുറി</string>
+    <string name="room_type_other">മറ്റുള്ളവ</string>
+
+    <string name="severity_light">കുറവ്</string>
+    <string name="severity_moderate">ഇടത്തരം</string>
+    <string name="severity_heavy">കനത്തത്</string>
+
+    <string name="clutter_low">കുറവ്</string>
+    <string name="clutter_medium">ഇടത്തരം</string>
+    <string name="clutter_high">കൂടുതൽ</string>
+
+    <string name="task_source_detected">ഫോട്ടോയിൽ കണ്ടത്</string>
+    <string name="task_source_template">ഈ മുറിക്ക് നിർദ്ദേശിച്ചത്</string>
+    <string name="task_source_manual">നിങ്ങൾ ചേർത്തത്</string>
+
+    <string name="mode_worker_estimate">തൊഴിലാളിയുടെ എസ്റ്റിമേറ്റ്</string>
+    <string name="mode_owner_quote">ഉടമയുടെ ക്വട്ടേഷൻ</string>
+
+    <!-- Setup screen -->
+    <string name="setup_title">ജോലി തയ്യാറാക്കാം</string>
+    <string name="setup_tagline">ന്യായമായ കൂലി, ഒരുമിച്ച് കണക്കാക്കാം.</string>
+    <string name="setup_who_question">ഇത് ആർക്കുവേണ്ടി?</string>
+    <string name="setup_worker_title">തൊഴിലാളിയുടെ എസ്റ്റിമേറ്റ്</string>
+    <string name="setup_worker_subtitle">ഞാൻ വൃത്തിയാക്കുന്നു. എത്ര ചോദിക്കാം?</string>
+    <string name="setup_owner_title">ഉടമയുടെ ക്വട്ടേഷൻ</string>
+    <string name="setup_owner_subtitle">വീട് എന്റേത്. എത്ര നൽകണം?</string>
+    <string name="setup_rate_worker_label">മണിക്കൂർ കൂലി</string>
+    <string name="setup_rate_owner_label">വിപണി നിരക്ക്</string>
+    <string name="setup_rate_worker_hint">ഇത് നിങ്ങൾ തീരുമാനിക്കുന്നു. ബാക്കി എല്ലാം ഇതിൽ നിന്ന്.</string>
+    <string name="setup_rate_owner_hint">നിങ്ങളുടെ പ്രദേശത്തെ തുടക്ക നിരക്ക്. മറ്റൊന്ന് സമ്മതിച്ചെങ്കിൽ മാറ്റാം.</string>
+    <string name="setup_per_hour">മണിക്കൂറിന്</string>
+    <string name="setup_pace_label">നിങ്ങളുടെ വേഗത</string>
+    <string name="setup_pace_hint">സമയം മാത്രം മാറ്റുന്നു</string>
+    <string name="setup_pace_fast">വേഗം</string>
+    <string name="setup_pace_standard">സാധാരണ</string>
+    <string name="setup_pace_thorough">സൂക്ഷ്മം</string>
+    <string name="setup_pace_note">വേഗത വിലയെ മാറ്റില്ല. വേഗത്തിൽ ചെയ്യുന്നവർക്ക് കുറഞ്ഞ കൂലി ഇല്ല.</string>
+    <string name="setup_height_label">നിങ്ങളുടെ ഉയരം</string>
+    <string name="setup_height_optional">ഓപ്ഷണൽ</string>
+    <string name="setup_height_hint">ക്യാമറ കൊണ്ട് മുറി അളക്കാൻ മാത്രം. ഒഴിച്ചിട്ടാൽ 1.25 മീറ്റർ എന്ന് കണക്കാക്കും.</string>
+    <string name="setup_height_unit">സെ.മീ</string>
+    <string name="setup_owner_pace_note">ക്വട്ടേഷനിൽ സാധാരണ വേഗത (1.0×) ഉപയോഗിക്കുന്നു.</string>
+    <string name="setup_owner_time_note">കാണിക്കുന്ന സമയം ജോലിയുടെ സാധാരണ സമയമാണ്.</string>
+    <string name="setup_next_button">ആദ്യ മുറി തുടങ്ങാം</string>
+
+    <!-- Room capture screen -->
+    <string name="capture_back_to_setup">സെറ്റപ്പിലേക്ക് മടങ്ങുക</string>
+    <string name="capture_room_title">മുറി %1$d</string>
+    <string name="capture_intro">ആദ്യം ഫോട്ടോ എടുക്കൂ. “മുറി വിശകലനം ചെയ്യുക” അമർത്തിയ ശേഷം മാത്രമേ ഞങ്ങൾ അവ നോക്കൂ.</string>
+    <string name="capture_size_question">മുറിക്ക് എത്ര വലിപ്പം?</string>
+    <string name="capture_method_measure">അളക്കുക</string>
+    <string name="capture_method_enter">വലിപ്പം നൽകുക</string>
+    <string name="capture_method_preset">പ്രീസെറ്റ്</string>
+    <string name="capture_measure_tip">രണ്ട് ചുമരിനും പുറം തിരിഞ്ഞ് മൂലയിൽ നിൽക്കുക.</string>
+    <string name="capture_length_label">നീളം</string>
+    <string name="capture_width_label">വീതി</string>
+    <string name="capture_take_shot">ഫോട്ടോ എടുക്കുക</string>
+    <string name="capture_retake">വീണ്ടും എടുക്കുക</string>
+    <string name="capture_measure_note">ഫോണിന്റെ ചരിവിൽ നിന്ന് അളന്നത്. സാധാരണ ഏകദേശം 20% വരെ വ്യത്യാസം വരാം. പിന്നീട് തിരുത്താം.</string>
+    <string name="capture_length_ft">നീളം (അടി)</string>
+    <string name="capture_width_ft">വീതി (അടി)</string>
+    <string name="capture_preset_small">ചെറുത്</string>
+    <string name="capture_preset_medium">ഇടത്തരം</string>
+    <string name="capture_preset_large">വലുത്</string>
+    <string name="capture_wide_title">മുറി മുഴുവൻ</string>
+    <string name="capture_wide_hint_recommended">ശുപാർശ ചെയ്യുന്നു. അളക്കുന്ന രണ്ട് ഫോട്ടോകളും വിശാല കാഴ്ചയായി എണ്ണും.</string>
+    <string name="capture_wide_hint_required">നിർബന്ധം. മുറിയുടെ മിക്ക ഭാഗവും കാണുംവിധം പിന്നോട്ട് മാറി നിൽക്കുക.</string>
+    <string name="capture_toughest_title">ഏറ്റവും അഴുക്കുള്ള ഭാഗം</string>
+    <string name="capture_toughest_hint">ഏറ്റവും അഴുക്കുള്ള പ്രതലം ഫ്രെയിം നിറയെ വരട്ടെ — കറ പിടിച്ച ടൈൽ, എണ്ണമയമുള്ള അടുപ്പ്. സാധാരണ അഴുക്കുള്ള ഭാഗം തിരഞ്ഞെടുക്കുക.</string>
+    <string name="capture_close_up">ക്ലോസ്-അപ്പ് എടുക്കുക</string>
+    <string name="capture_photo_button">ഫോട്ടോ</string>
+    <string name="capture_analyze_button">മുറി വിശകലനം ചെയ്യുക</string>
+    <string name="capture_sheet_which_photo">ഏത് ഫോട്ടോ?</string>
+    <string name="capture_sheet_close_up_full">ഏറ്റവും അഴുക്കുള്ള ഭാഗത്തിന്റെ ക്ലോസ്-അപ്പ്</string>
+    <string name="capture_need_size">തുടരാൻ മുറിയുടെ വലിപ്പം ചേർക്കുക</string>
+    <string name="capture_need_wide">തുടരാൻ മുറി മുഴുവൻ കാണുന്ന ഒരു ഫോട്ടോ ചേർക്കുക</string>
+    <string name="capture_need_tough">തുടരാൻ ഏറ്റവും അഴുക്കുള്ള ഭാഗത്തിന്റെ ക്ലോസ്-അപ്പ് ചേർക്കുക</string>
+    <string name="capture_photos_ready">%1$d ഫോട്ടോ തയ്യാർ · വിശകലനം ചെയ്യുക അമർത്തിയ ശേഷം സ്കാൻ ചെയ്യും</string>
+    <string name="capture_cam_length_title">നീളത്തിന്റെ ഫോട്ടോ · 1/2</string>
+    <string name="capture_cam_width_title">വീതിയുടെ ഫോട്ടോ · 2/2</string>
+    <string name="capture_cam_wide_title">മുറി മുഴുവൻ</string>
+    <string name="capture_cam_tough_title">ഏറ്റവും അഴുക്കുള്ള ഭാഗം</string>
+    <string name="capture_prompt_length">നിങ്ങളുടെ വശത്തെ ചുമരിന്റെ അറ്റത്ത്, തറയുമായി ചേരുന്ന ഭാഗത്തേക്ക് കുരിശ് ലക്ഷ്യമാക്കുക.</string>
+    <string name="capture_prompt_width">90° തിരിയുക. മറ്റേ ചുമരിന്റെ അറ്റത്ത്, തറയുമായി ചേരുന്ന ഭാഗത്തേക്ക് കുരിശ് ലക്ഷ്യമാക്കുക.</string>
+    <string name="capture_prompt_wide">മുറിയുടെ മിക്ക ഭാഗവും ഫ്രെയിമിൽ വരുംവിധം പിന്നോട്ട് മാറുക.</string>
+    <string name="capture_prompt_tough">അടുത്ത് ചെല്ലുക. ഏറ്റവും അഴുക്കുള്ള പ്രതലം ഫ്രെയിം നിറയ്ക്കട്ടെ.</string>
+    <string name="capture_no_scan_yet">ഇപ്പോൾ സ്കാൻ ചെയ്യുന്നില്ല. “മുറി വിശകലനം ചെയ്യുക” അമർത്തിയ ശേഷം വസ്തുക്കൾ നോക്കും.</string>
+    <string name="capture_tilt_label">ചരിവ്</string>
+    <string name="capture_distance_label">ദൂരം</string>
+    <string name="capture_side_label">വശം</string>
+    <string name="capture_hold_steady">അനങ്ങാതെ പിടിക്കുക…</string>
+    <string name="capture_steady_ok">സ്ഥിരം</string>
+    <string name="capture_shutter">ഫോട്ടോ എടുക്കുക</string>
+    <string name="capture_measure_result">≈ %1$s × %2$s · %3$d ച. അടി</string>
+    <string name="capture_enter_result">≈ %1$d ച. അടി</string>
+
+    <!-- Analyzing screen -->
+    <string name="analyzing_title">ഫോട്ടോകൾ പരിശോധിക്കുന്നു</string>
+    <string name="analyzing_comparing">ഓരോ ഭാഗവും പ്രതലത്തിന്റെ നിറവുമായി താരതമ്യം ചെയ്യുന്നു</string>
+    <string name="analyzing_stage_length">നീളത്തിന്റെ ഫോട്ടോ വായിക്കുന്നു…</string>
+    <string name="analyzing_stage_width">വീതിയുടെ ഫോട്ടോ വായിക്കുന്നു…</string>
+    <string name="analyzing_stage_wide">മുറി മുഴുവൻ ഫോട്ടോ വായിക്കുന്നു…</string>
+    <string name="analyzing_stage_tough">അഴുക്കുള്ള ഭാഗം നോക്കുന്നു…</string>
+    <string name="analyzing_stage_merge">എല്ലാം ചേർത്തു നോക്കുന്നു…</string>
+    <string name="analyzing_row_length">നീളം: വസ്തുക്കൾ കണ്ടെത്തൽ</string>
+    <string name="analyzing_row_width">വീതി: വസ്തുക്കൾ കണ്ടെത്തൽ</string>
+    <string name="analyzing_row_wide">മുറി മുഴുവൻ: വസ്തുക്കൾ കണ്ടെത്തൽ</string>
+    <string name="analyzing_row_tough">അഴുക്ക് പരിശോധന</string>
+    <string name="analyzing_row_merge">എണ്ണം ചേർത്തു നോക്കൽ</string>
+    <string name="analyzing_thumb_length">നീളം</string>
+    <string name="analyzing_thumb_width">വീതി</string>
+    <string name="analyzing_thumb_wide">മുഴുവൻ</string>
+    <string name="analyzing_thumb_tough">അഴുക്ക്</string>
+    <string name="analyzing_privacy_note">ഈ ഫോണിൽ തന്നെ പ്രവർത്തിക്കുന്നു. ഫോട്ടോകൾ പുറത്തേക്ക് പോകില്ല.</string>
+    <string name="analyzing_review_button">മുറി പരിശോധിക്കാം</string>
+    <string name="analyzing_working">വിശകലനം ചെയ്യുന്നു…</string>
+    <string name="analyzing_suggested_severity">നിർദ്ദേശം: %1$s</string>
+    <string name="analyzing_suggested_room_type">%1$s പോലെ തോന്നുന്നു</string>
+
+    <!-- Room confirm screen -->
+    <string name="confirm_title">മുറി പരിശോധിക്കൂ</string>
+    <string name="confirm_subtitle">മുറി %1$d · എന്തെല്ലാം വൃത്തിയാക്കണമെന്ന് നിങ്ങൾ തീരുമാനിക്കുന്നു</string>
+    <string name="confirm_tab_wide">മുറി മുഴുവൻ</string>
+    <string name="confirm_tab_tough">അഴുക്കുള്ള ഭാഗം</string>
+    <string name="confirm_box_hint">സ്കാൻ കണ്ടെത്തിയത് ബോക്സുകളിൽ കാണാം. എന്ത് വൃത്തിയാക്കണമെന്ന് നിങ്ങൾ തീരുമാനിക്കും.</string>
+    <string name="confirm_tough_stats">കറ %1$d%% · ഇരുണ്ടത് %2$d%% · സ്കോർ %3$d/100</string>
+    <string name="confirm_room_type_label">മുറിയുടെ തരം</string>
+    <string name="confirm_room_type_suggested">കണ്ടെത്തിയതിൽ നിന്നുള്ള നിർദ്ദേശം: %1$s. തെറ്റാണെങ്കിൽ മാറ്റാം.</string>
+    <string name="confirm_size_label">മുറിയുടെ വലിപ്പം</string>
+    <string name="confirm_sqft_unit">ച. അടി</string>
+    <string name="confirm_size_measured">അളന്നത് · ±20%</string>
+    <string name="confirm_size_manual">നൽകിയത് · ±10%</string>
+    <string name="confirm_size_preset">പ്രീസെറ്റ് · ±25%</string>
+    <string name="confirm_dims_note">നിങ്ങളുടെ രണ്ട് ഫോട്ടോകളിൽ നിന്ന് %1$s</string>
+    <string name="confirm_dirt_label">എത്ര അഴുക്കുണ്ട്?</string>
+    <string name="confirm_dirt_hint">ഏറ്റവും അഴുക്കുള്ള ഭാഗത്തിന്റെ ഫോട്ടോയിൽ നിന്നുള്ള നിർദ്ദേശം. മാറ്റാൻ തൊടുക.</string>
+    <string name="confirm_edited_badge">മാറ്റി</string>
+    <string name="confirm_ai_said">നിർദ്ദേശം: %1$s</string>
+    <string name="confirm_clutter_summary">സാധനങ്ങളുടെ കൂട്ടം: %1$s · %2$d ചെറിയ സാധനങ്ങൾ</string>
+    <string name="confirm_list_title">എന്തെല്ലാം വൃത്തിയാക്കണം</string>
+    <string name="confirm_select_all">എല്ലാം തിരഞ്ഞെടുക്കുക</string>
+    <string name="confirm_clear_all">എല്ലാം ഒഴിവാക്കുക</string>
+    <string name="confirm_how_counted">എണ്ണിയ വിധം</string>
+    <string name="confirm_minutes_unit">മിനിറ്റ്</string>
+    <string name="confirm_task_minutes">%1$d മിനിറ്റ് × %2$d = %3$d മിനിറ്റ്</string>
+    <string name="confirm_decrease_quantity">ഒന്ന് കുറയ്ക്കുക: %1$s</string>
+    <string name="confirm_increase_quantity">ഒന്ന് കൂട്ടുക: %1$s</string>
+    <string name="confirm_add_task">വിട്ടുപോയ ജോലി ചേർക്കുക</string>
+    <string name="confirm_add_task_title">ജോലി ചേർക്കുക</string>
+    <string name="confirm_no_more_tasks">എല്ലാ ജോലികളും ലിസ്റ്റിൽ ഉണ്ട്.</string>
+    <string name="confirm_estimate_label">സമയവും കൂലിയും (ഏകദേശം)</string>
+    <string name="confirm_save_room">മുറി സേവ് ചെയ്യുക</string>
+    <string name="confirm_rule_a">നീളത്തിന്റെയും വീതിയുടെയും ഫോട്ടോകൾ കൂട്ടിയെടുക്കും. അവ ഏകദേശം 90° വ്യത്യാസത്തിൽ ആയതിനാൽ ഒന്നും ആവർത്തിക്കില്ല.</string>
+    <string name="confirm_rule_b">മുറി മുഴുവൻ കാണുന്ന ഫോട്ടോകളിൽ ഏറ്റവും നല്ല ഒന്ന് എടുക്കും; ഒരു വസ്തു രണ്ടുതവണ എണ്ണില്ല.</string>
+    <string name="confirm_rule_c">എണ്ണം = ഇവയിൽ വലുത്.</string>
+    <string name="confirm_col_item">വസ്തു</string>
+    <string name="confirm_col_length">നീളം</string>
+    <string name="confirm_col_width">വീതി</string>
+    <string name="confirm_col_wide">മുഴുവൻ</string>
+    <string name="confirm_col_count">എണ്ണം</string>
+    <string name="confirm_count_limit_note">ഇതൊരു ഏകദേശ രീതിയാണ്. എണ്ണം തെറ്റിയാൽ + / − കൊണ്ട് തിരുത്താം.</string>
+
+    <!-- Job hub screen -->
+    <string name="jobhub_title">നിങ്ങളുടെ ജോലി</string>
+    <string name="jobhub_rooms_count">%1$d മുറികൾ</string>
+    <string name="jobhub_rate_per_hour">₹%1$s മണിക്കൂറിന്</string>
+    <string name="jobhub_pace_standard">സാധാരണ വേഗത 1.0×</string>
+    <string name="jobhub_room_confirmed">സ്ഥിരീകരിച്ചു</string>
+    <string name="jobhub_room_meta_size">%1$d ച. അടി · %2$s</string>
+    <string name="jobhub_room_meta_tasks">%1$d ജോലി · അഴുക്ക്: %2$s</string>
+    <string name="jobhub_room_time">%1$s–%2$s മണിക്കൂർ</string>
+    <string name="jobhub_add_room">മറ്റൊരു മുറി ചേർക്കുക</string>
+    <string name="jobhub_add_first_room">ആദ്യ മുറി ചേർക്കുക</string>
+    <string name="jobhub_finish_button">തീർത്ത് ബിൽ എടുക്കുക</string>
+    <string name="jobhub_total_label">ആകെ</string>
+    <string name="jobhub_empty_title">ഇതുവരെ മുറികളില്ല</string>
+    <string name="jobhub_empty_subtitle">ആദ്യ മുറി ചേർക്കൂ, കുറച്ച് ഫോട്ടോ എടുക്കൂ; വില നമുക്ക് ഒരുമിച്ച് കണക്കാക്കാം.</string>
+    <string name="jobhub_tap_hint">തിരഞ്ഞെടുത്തത് മാറ്റാൻ മുറിയിൽ തൊടുക.</string>
+
+    <!-- Bill screen -->
+    <string name="bill_title_worker">ശുചീകരണ എസ്റ്റിമേറ്റ്</string>
+    <string name="bill_title_owner">ശുചീകരണ ക്വട്ടേഷൻ</string>
+    <string name="bill_rate_per_hour">₹%1$s മണിക്കൂറിന്</string>
+    <string name="bill_rate_market">₹%1$s മണിക്കൂറിന് (വിപണി നിരക്ക്)</string>
+    <string name="bill_time_label">സമയം</string>
+    <string name="bill_hours_unit">മണിക്കൂർ</string>
+    <string name="bill_pay_label">കൂലി</string>
+    <string name="bill_quote_label">തുക</string>
+    <string name="bill_range_note">മുറികളുടെ വലിപ്പത്തിൽ എത്ര ഉറപ്പുണ്ടെന്ന് ഈ പരിധി കാണിക്കുന്നു</string>
+    <string name="bill_rate_short">₹%1$s മണിക്കൂറിന്</string>
+    <string name="bill_col_task">ജോലി</string>
+    <string name="bill_col_qty">എണ്ണം</string>
+    <string name="bill_col_min">മിനിറ്റ്</string>
+    <string name="bill_dirt_label">അഴുക്ക്</string>
+    <string name="bill_clutter_label">സാധനങ്ങളുടെ കൂട്ടം</string>
+    <string name="bill_show_math">കണക്ക് കാണിക്കൂ</string>
+    <string name="bill_math_floor">തറ</string>
+    <string name="bill_math_tasks">ജോലികൾ</string>
+    <string name="bill_math_cond">അഴുക്കും സാധനങ്ങളും</string>
+    <string name="bill_math_std">സാധാരണ സമയം</string>
+    <string name="bill_math_labour">അധ്വാനം</string>
+    <string name="bill_math_materials">സാധനങ്ങൾ</string>
+    <string name="bill_math_price">വില</string>
+    <string name="bill_math_range">പരിധി</string>
+    <string name="bill_math_pace">വേഗത (സമയത്തിന് മാത്രം)</string>
+    <string name="bill_evidence_title">ഫോട്ടോകളും ഹാഷുകളും</string>
+    <string name="bill_evidence_note">പൂർണ്ണ ഹാഷിനും സമയത്തിനും ഫോട്ടോയിൽ തൊടുക.</string>
+    <string name="bill_hash_of">സേവ് ചെയ്ത ഫയലിന്റെ SHA-256</string>
+    <string name="bill_taken_label">എടുത്തത്</string>
+    <string name="bill_disclaimer">എസ്റ്റിമേറ്റ് ഈ ഫോണിൽ തന്നെ കണക്കാക്കിയത്. ഹാഷുകൾ ഒറിജിനൽ ഫോട്ടോകളുടേതാണ്. മാറ്റം തിരിച്ചറിയാം, പക്ഷേ തടയാനാവില്ല: ഫോണിന്റെ ക്ലോക്ക് മാറ്റാൻ കഴിയും.</string>
+    <string name="bill_export_pdf">PDF എടുക്കുക</string>
+    <string name="bill_share">പങ്കിടുക</string>
+    <string name="bill_pdf_ready">PDF തയ്യാർ</string>
+    <string name="bill_pdf_meta">2 പേജ് · ഇംഗ്ലീഷ് മാത്രം</string>
+    <string name="bill_share_dots">പങ്കിടുക…</string>
+    <string name="bill_pdf_note">ഫയൽ ചെറുതാക്കാൻ PDF-ലെ ഫോട്ടോകൾ ചെറുതാക്കിയിട്ടുണ്ട്; അതിനാൽ അച്ചടിച്ച ഓരോ ഹാഷും ഒറിജിനൽ ഫോട്ടോ ഫയലിന്റേതാണ്. PDF-ലും ഇത് പറയുന്നുണ്ട്.</string>
 </resources>
