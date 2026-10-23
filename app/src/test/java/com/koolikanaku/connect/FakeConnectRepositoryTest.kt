@@ -21,13 +21,14 @@ import org.junit.Test
 
 class FakeConnectRepositoryTest {
 
+    private val PIN = "123456"
     private var now = 1_000_000L
     private val repo = FakeConnectRepository(clock = { now })
     private val kochi = Geo.LatLng(9.9312, 76.2673)
     private val cell = Geo.encode(kochi.lat, kochi.lng)
 
     private fun signUp(phone: String, name: String, role: UserRole): ConnectUser = runBlocking {
-        repo.verifyCode(phone, FakeConnectRepository.DEMO_OTP, name, role).getOrThrow()
+        repo.signIn(phone, PIN, name, role).getOrThrow()
     }
 
     private fun worker(phone: String = "9000000001", name: String = "Asha"): ConnectUser {
@@ -41,22 +42,76 @@ class FakeConnectRepositoryTest {
 
     private fun verifiedEvidence() = EvidenceSummary("a".repeat(64), 400, 520, 1, 4, listOf("b".repeat(64)), "2026-10-24T05:00:00Z")
 
-    @Test fun signInNeedsTheRightCodeAndAValidNumber() = runBlocking {
-        assertTrue(repo.verifyCode("9000000001", "000000", "A", UserRole.OWNER).isFailure)
-        assertTrue(repo.verifyCode("123", FakeConnectRepository.DEMO_OTP, "A", UserRole.OWNER).isFailure)
-        assertTrue(repo.requestCode("12").isFailure)
-        assertTrue(repo.requestCode("9000000001").isSuccess)
+    @Test fun signInNeedsAValidNumberAndASixDigitPin() = runBlocking {
+        assertTrue(repo.signIn("123", PIN, "A", UserRole.OWNER).isFailure)
+        assertTrue(repo.signIn("9000000001", "12345", "A", UserRole.OWNER).isFailure)
+        assertTrue(repo.signIn("9000000001", "12345a", "A", UserRole.OWNER).isFailure)
+        assertTrue("a new account needs a name", repo.signIn("9000000001", PIN, " ", UserRole.OWNER).isFailure)
+        assertTrue(repo.signIn("9000000001", PIN, "A", UserRole.OWNER).isSuccess)
     }
 
-    @Test fun anExistingNumberKeepsItsRoleAndSignsBackIn() {
+    @Test fun anExistingNumberNeedsItsPinAndKeepsItsRole() {
         val first = signUp("9000000001", "Asha", UserRole.WORKER)
         repo.signOut()
         assertNull(repo.currentUser())
+        assertTrue("wrong PIN", runBlocking { repo.signIn("9000000001", "000000", "Asha", UserRole.WORKER) }.isFailure)
+        assertNull("still signed out after a wrong PIN", repo.currentUser())
         val again = signUp("+91 90000 00001", "ignored", UserRole.WORKER)
         assertEquals(first.uid, again.uid)
         assertEquals(first.uid, repo.currentUser()?.uid)
-        val wrongRole = runBlocking { repo.verifyCode("9000000001", FakeConnectRepository.DEMO_OTP, "Asha", UserRole.OWNER) }
-        assertTrue(wrongRole.isFailure)
+        assertTrue("wrong role", runBlocking { repo.signIn("9000000001", PIN, "Asha", UserRole.OWNER) }.isFailure)
+    }
+
+    @Test fun accountsAndBookingsSurviveARestart() = runBlocking {
+        val saved = object : FakeConnectRepository.StateStore {
+            var json: String? = null
+            override fun load() = json
+            override fun save(json: String) { this.json = json }
+        }
+        val first = FakeConnectRepository(clock = { now }, store = saved)
+        val w = first.signIn("9000000001", PIN, "Asha", UserRole.WORKER).getOrThrow()
+        first.saveProfile(WorkerProfile(w.uid, "Asha", w.phone, listOf("Malayalam"), listOf(ServiceType.KITCHEN), 200, 300, "bio"))
+        first.setAvailability(w.uid, true, cell, now + 3_600_000)
+        first.signOut()
+        val o = first.signIn("9000000009", PIN, "Omar", UserRole.OWNER).getOrThrow()
+        val b = first.request(o.uid, w.uid, "now", "Edappally", "2BHK").getOrThrow()
+        first.perform(b.id, w.uid, Action.ACCEPT)
+
+        val reopened = FakeConnectRepository(clock = { now }, store = saved)     // a fresh process
+        assertEquals(o.uid, reopened.currentUser()?.uid)
+        val booking = reopened.observe(b.id).first()!!
+        assertEquals(BookingStatus.ACCEPTED, booking.status)
+        assertEquals(w.phone, booking.workerPhone)
+        assertEquals("bio", reopened.profileOf(w.uid)?.bio)
+        assertEquals(listOf(ServiceType.KITCHEN), reopened.profileOf(w.uid)?.services)
+        assertEquals(1, reopened.observeOpenWorkers(Geo.searchPrefixes(kochi.lat, kochi.lng)).first().size)
+        assertTrue("PIN is remembered", reopened.signIn("9000000001", PIN, "Asha", UserRole.WORKER).isSuccess)
+        assertTrue(reopened.signIn("9000000001", "999999", "Asha", UserRole.WORKER).isFailure)
+    }
+
+    @Test fun savedRatingsAndEvidenceSurviveARestart() = runBlocking {
+        val saved = object : FakeConnectRepository.StateStore {
+            var json: String? = null
+            override fun load() = json
+            override fun save(json: String) { this.json = json }
+        }
+        val first = FakeConnectRepository(clock = { now }, store = saved)
+        val w = first.signIn("9000000001", PIN, "Asha", UserRole.WORKER).getOrThrow()
+        first.saveProfile(WorkerProfile(w.uid, "Asha", w.phone, emptyList(), listOf(ServiceType.GENERAL), 200, 300))
+        first.setAvailability(w.uid, true, cell, now + 3_600_000)
+        first.signOut()
+        val o = first.signIn("9000000009", PIN, "Omar", UserRole.OWNER).getOrThrow()
+        val b = first.request(o.uid, w.uid, "now", "a", "b").getOrThrow()
+        for (a in listOf(Action.ACCEPT, Action.ARRIVE, Action.START)) first.perform(b.id, w.uid, a)
+        first.perform(b.id, w.uid, Action.COMPLETE, evidence = verifiedEvidence())
+        first.rate(b.id, o.uid, 5, listOf("on time"), "Great")
+
+        val reopened = FakeConnectRepository(clock = { now }, store = saved)
+        val rating = reopened.ratingsFor(w.uid).first().single()
+        assertEquals(listOf("on time"), rating.tags)
+        assertTrue(rating.verified)
+        assertEquals(verifiedEvidence(), reopened.observe(b.id).first()!!.evidence)
+        assertEquals(1, reopened.observeOpenWorkers(Geo.searchPrefixes(kochi.lat, kochi.lng)).first().single().stats.verifiedCount)
     }
 
     @Test fun onlyAWorkerAccountHasAProfileAndGoesOpen() = runBlocking {

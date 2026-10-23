@@ -101,6 +101,7 @@ fun BillScreen(
     beforeAfter: List<BeforeAfterUi> = emptyList(),
     onAddAfterPhoto: (String) -> Unit = {},
     onVerifyPhotos: () -> Unit = {},
+    bookingFooter: (@Composable () -> Unit)? = null,
     exportSheetVisible: Boolean,
     fileNameText: String,
     pdfMetaText: String,
@@ -303,6 +304,8 @@ fun BillScreen(
                     }
                 }
             }
+
+            if (bookingFooter != null) item { bookingFooter() }
 
             item {
                 OutlinedButton(onClick = onVerifyPhotos, modifier = Modifier.fillMaxWidth()) {

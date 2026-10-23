@@ -6,17 +6,23 @@ import com.koolikanaku.connect.model.ConnectUser
 import com.koolikanaku.connect.model.EvidenceSummary
 import com.koolikanaku.connect.model.Rating
 import com.koolikanaku.connect.model.UserRole
+import com.koolikanaku.connect.model.WorkerAvailability
 import com.koolikanaku.connect.model.WorkerListing
 import com.koolikanaku.connect.model.WorkerProfile
+import com.koolikanaku.connect.logic.Geo
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 
 /**
  * Backend-neutral contracts for the connected layer. The app talks only to these, so the in-memory
  * fake (demo and tests) and a real server can be swapped without touching any screen.
  */
 interface AuthRepository {
-    suspend fun requestCode(phone: String): Result<Unit>
-    suspend fun verifyCode(phone: String, code: String, name: String, role: UserRole): Result<ConnectUser>
+    /**
+     * Signs in, or creates the account the first time this phone number is used. [pin] is a 6-digit PIN
+     * (no SMS is sent; a real SMS code is the upgrade path). The role cannot be changed later.
+     */
+    suspend fun signIn(phone: String, pin: String, name: String, role: UserRole): Result<ConnectUser>
     fun currentUser(): ConnectUser?
     fun signOut()
 }
@@ -24,6 +30,7 @@ interface AuthRepository {
 interface WorkerRepository {
     suspend fun saveProfile(profile: WorkerProfile): Result<Unit>
     suspend fun profileOf(uid: String): WorkerProfile?
+    suspend fun availabilityOf(uid: String): WorkerAvailability?
     /** [geohash] is the coarse cell only; exact coordinates never reach the backend. */
     suspend fun setAvailability(uid: String, open: Boolean, geohash: String?, expiresAtMs: Long?): Result<Unit>
     fun observeOpenWorkers(geohashPrefixes: List<String>): Flow<List<WorkerListing>>
@@ -49,3 +56,18 @@ interface RatingRepository {
 }
 
 class ConnectException(message: String) : Exception(message)
+
+/** Everything the screens need from a backend, plus a way to tell the person what is going on. */
+interface ConnectBackend : AuthRepository, WorkerRepository, BookingRepository, RatingRepository {
+    /** True for the in-memory demo backend: sample workers, nothing leaves the phone. */
+    val isDemo: Boolean
+    /** Last network or server problem seen while polling, or null when things are fine. */
+    val lastError: StateFlow<String?>
+    /** Lets the demo backend place its sample workers near the owner. A real backend ignores it. */
+    fun prepareForLocation(center: Geo.LatLng) {}
+}
+
+object Pin {
+    const val LENGTH = 6
+    fun isValid(pin: String): Boolean = pin.length == LENGTH && pin.all { it.isDigit() }
+}

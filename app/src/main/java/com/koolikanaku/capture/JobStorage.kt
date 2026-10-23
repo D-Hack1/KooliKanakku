@@ -90,6 +90,7 @@ object JobStorage {
     private fun jobToJson(j: Job) = JSONObject().apply {
         put("id", j.id); put("mode", j.mode.name); put("createdIso", j.createdIso)
         put("hourlyRateInr", j.hourlyRateInr); put("paceFactor", j.paceFactor); put("holdHeightM", j.holdHeightM.toDouble())
+        put("bookingId", j.bookingId ?: JSONObject.NULL)
         put("rooms", JSONArray().also { a -> j.rooms.forEach { a.put(roomToJson(it)) } })
     }
 
@@ -170,6 +171,7 @@ object JobStorage {
             hourlyRateInr = o.getDouble("hourlyRateInr"),
             paceFactor = o.getDouble("paceFactor"),
             holdHeightM = o.getDouble("holdHeightM").toFloat(),
+            bookingId = o.optStringOrNull("bookingId"),
             rooms = (0 until rooms.length()).map { roomFromJson(rooms.getJSONObject(it)) }
         )
     }

@@ -8,6 +8,9 @@ import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.unit.dp
 import androidx.compose.ui.res.stringResource
 import com.koolikanaku.R
 import androidx.compose.runtime.LaunchedEffect
@@ -71,6 +74,10 @@ object Routes {
     fun roomConfirm(roomId: String) = "room_confirm/$roomId"
     const val BILL = "bill"
     const val VERIFY = "verify"
+    const val CONNECT_AUTH = "connect_auth"
+    const val CONNECT_HOME = "connect_home"
+    const val CONNECT_BOOKING = "connect_booking/{bookingId}"
+    fun connectBooking(id: String) = "connect_booking/$id"
 }
 
 @Composable
@@ -80,6 +87,8 @@ fun AppNavGraph(
 ) {
     val storageContext = LocalContext.current
     remember(vm) { vm.attachStorage(storageContext) }   // restore a saved job before any screen reads state
+    val connectVm: com.koolikanaku.connect.ui.ConnectViewModel = viewModel()
+    val connectScope = androidx.compose.runtime.rememberCoroutineScope()
 
     NavHost(
         navController = navController,
@@ -104,6 +113,7 @@ fun AppNavGraph(
                 onHeightChange = vm::changeHeightCm,
                 darkTheme = vm.darkTheme,
                 onToggleDarkTheme = vm::toggleDarkTheme,
+                onFindWorker = { navController.navigate(if (connectVm.user != null) Routes.CONNECT_HOME else Routes.CONNECT_AUTH) },
                 resumeRoomCount = vm.job?.rooms?.size ?: 0,
                 onResumeJob = {
                     navController.navigate(if (vm.quote != null) Routes.BILL else Routes.JOB_HUB)
@@ -576,6 +586,40 @@ fun AppNavGraph(
             }
 
             BillScreen(
+                bookingFooter = job.bookingId?.let { id ->
+                    {
+                        val booking = connectVm.booking(id)
+                        if (booking != null && booking.status == com.koolikanaku.connect.model.BookingStatus.IN_PROGRESS) {
+                            androidx.compose.material3.Surface(
+                                shape = androidx.compose.foundation.shape.RoundedCornerShape(14.dp),
+                                color = androidx.compose.material3.MaterialTheme.colorScheme.primaryContainer
+                            ) {
+                                androidx.compose.foundation.layout.Column(
+                                    modifier = androidx.compose.ui.Modifier.padding(14.dp),
+                                    verticalArrangement = androidx.compose.foundation.layout.Arrangement.spacedBy(8.dp)
+                                ) {
+                                    androidx.compose.material3.Text(stringResource(R.string.connect_complete_booking), style = androidx.compose.material3.MaterialTheme.typography.titleLarge)
+                                    androidx.compose.material3.Text(stringResource(R.string.connect_complete_booking_note), style = androidx.compose.material3.MaterialTheme.typography.bodyMedium)
+                                    if (com.koolikanaku.capture.BillFingerprint.afterPhotoHashes(job).isEmpty()) {
+                                        androidx.compose.material3.Text(stringResource(R.string.connect_complete_need_after), style = androidx.compose.material3.MaterialTheme.typography.bodySmall)
+                                    }
+                                    androidx.compose.material3.Button(
+                                        onClick = {
+                                            val evidence = com.koolikanaku.connect.logic.EvidenceSummaryBuilder.from(job, jobQuote, java.time.Instant.now().toString())
+                                            connectVm.perform(id, com.koolikanaku.connect.logic.BookingStateMachine.Action.COMPLETE, evidence = evidence) {
+                                                navController.navigate(Routes.connectBooking(id))
+                                            }
+                                        },
+                                        enabled = !connectVm.busy,
+                                        modifier = androidx.compose.ui.Modifier.fillMaxWidth()
+                                    ) { androidx.compose.material3.Text(stringResource(R.string.connect_complete_booking)) }
+                                }
+                            }
+                        } else if (booking != null) {
+                            androidx.compose.material3.Text(stringResource(R.string.connect_booking_done))
+                        }
+                    }
+                },
                 beforeAfter = beforeAfter,
                 onAddAfterPhoto = { roomId ->
                     pendingAfterRoom = roomId
@@ -610,6 +654,51 @@ fun AppNavGraph(
                 },
                 onDismissExportSheet = { exportSheetVisible = false },
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        composable(Routes.CONNECT_AUTH) {
+            com.koolikanaku.connect.ui.ConnectAuthScreen(
+                vm = connectVm,
+                onBack = { navController.popBackStack() },
+                onSignedIn = { navController.navigate(Routes.CONNECT_HOME) { popUpTo(Routes.CONNECT_AUTH) { inclusive = true } } }
+            )
+        }
+
+        composable(Routes.CONNECT_HOME) {
+            if (connectVm.user == null) {
+                LaunchedEffect(Unit) { navController.navigate(Routes.CONNECT_AUTH) { popUpTo(Routes.CONNECT_HOME) { inclusive = true } } }
+            } else {
+                com.koolikanaku.connect.ui.ConnectHomeScreen(
+                    vm = connectVm,
+                    onBack = { navController.popBackStack() },
+                    onOpenBooking = { navController.navigate(Routes.connectBooking(it)) }
+                )
+            }
+        }
+
+        composable(
+            Routes.CONNECT_BOOKING,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: return@composable
+            com.koolikanaku.connect.ui.BookingScreen(
+                vm = connectVm,
+                bookingId = bookingId,
+                estimateStartedHere = vm.job?.bookingId == bookingId,
+                onBack = { navController.popBackStack() },
+                onStartEstimate = { booking ->
+                    connectScope.launch {
+                        val role = connectVm.user?.role ?: return@launch
+                        val rate = connectVm.workerRateFor(booking)
+                        val mode = if (role == com.koolikanaku.connect.model.UserRole.OWNER) AppMode.OWNER_QUOTE else AppMode.WORKER_ESTIMATE
+                        val jobId = vm.startJobForBooking(mode, rate, booking.id)
+                        connectVm.perform(booking.id, com.koolikanaku.connect.logic.BookingStateMachine.Action.START, jobId = jobId) {
+                            navController.navigate(Routes.JOB_HUB)
+                        }
+                    }
+                },
+                onContinueEstimate = { navController.navigate(Routes.JOB_HUB) }
             )
         }
 

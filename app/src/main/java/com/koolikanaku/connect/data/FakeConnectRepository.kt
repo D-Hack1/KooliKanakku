@@ -16,9 +16,12 @@ import com.koolikanaku.connect.model.WorkerListing
 import com.koolikanaku.connect.model.WorkerProfile
 import com.koolikanaku.connect.model.WorkerStats
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.update
+import org.json.JSONArray
+import org.json.JSONObject
 import java.util.UUID
 
 /**
@@ -27,11 +30,23 @@ import java.util.UUID
  * and no double-booking a busy worker. Sample workers are always flagged [WorkerProfile.isDemo].
  */
 class FakeConnectRepository(
-    private val clock: () -> Long = System::currentTimeMillis
-) : AuthRepository, WorkerRepository, BookingRepository, RatingRepository {
+    private val clock: () -> Long = System::currentTimeMillis,
+    /** Where the state is saved so accounts and bookings survive the app being closed. Null keeps it in memory only. */
+    private val store: StateStore? = null
+) : ConnectBackend {
+
+    /** Minimal key-value saving, so tests need no Android. */
+    interface StateStore {
+        fun load(): String?
+        fun save(json: String)
+    }
+
+    override val isDemo: Boolean = true
+    override val lastError: StateFlow<String?> = MutableStateFlow(null)
 
     private data class State(
         val users: Map<String, ConnectUser> = emptyMap(),
+        val pins: Map<String, String> = emptyMap(),   // phone -> PIN
         val profiles: Map<String, WorkerProfile> = emptyMap(),
         val availability: Map<String, WorkerAvailability> = emptyMap(),
         val stats: Map<String, WorkerStats> = emptyMap(),
@@ -42,39 +57,78 @@ class FakeConnectRepository(
 
     private val state = MutableStateFlow(State())
 
-    companion object {
-        /** The demo sign-in code; a real backend sends an SMS. */
-        const val DEMO_OTP = "123456"
+    init {
+        store?.load()?.let { json -> runCatching { state.value = decode(json) } }
+    }
+
+    private fun persist() {
+        store?.let { runCatching { it.save(encode(state.value)) } }
+    }
+
+    private fun encode(s: State): String = JSONObject().apply {
+        put("users", JSONArray().also { a -> s.users.values.forEach { u -> a.put(JSONObject().put("uid", u.uid).put("role", u.role.name).put("name", u.name).put("phone", u.phone)) } })
+        put("pins", JSONObject().also { o -> s.pins.forEach { (phone, pin) -> o.put(phone, pin) } })
+        put("profiles", JSONArray().also { a -> s.profiles.values.forEach { a.put(ConnectJson.profileToJson(it)) } })
+        put("availability", JSONObject().also { o -> s.availability.forEach { (uid, av) ->
+            o.put(uid, JSONObject().put("open", av.open).put("geohash", av.geohash ?: JSONObject.NULL).put("expiresAtMs", av.expiresAtMs ?: JSONObject.NULL)) } })
+        put("stats", JSONObject().also { o -> s.stats.forEach { (uid, st) -> o.put(uid, ConnectJson.statsToJson(st)) } })
+        put("bookings", JSONArray().also { a -> s.bookings.values.forEach { a.put(ConnectJson.bookingToJson(it)) } })
+        put("ratings", JSONArray().also { a -> s.ratings.forEach { a.put(ConnectJson.ratingToJson(it)) } })
+        put("currentUid", s.currentUid ?: JSONObject.NULL)
+    }.toString()
+
+    private fun decode(json: String): State {
+        val o = JSONObject(json)
+        fun <T> JSONArray?.mapObjects(f: (JSONObject) -> T): List<T> = if (this == null) emptyList() else (0 until length()).map { f(getJSONObject(it)) }
+        val users = o.optJSONArray("users").mapObjects { u ->
+            ConnectUser(u.getString("uid"), ConnectJson.enumOr(u.getString("role"), UserRole.OWNER), u.getString("name"), u.getString("phone"))
+        }.associateBy { it.uid }
+        val pinsObj = o.optJSONObject("pins")
+        val avObj = o.optJSONObject("availability")
+        val statsObj = o.optJSONObject("stats")
+        return State(
+            users = users,
+            pins = pinsObj?.keys()?.asSequence()?.associateWith { pinsObj.getString(it) } ?: emptyMap(),
+            profiles = o.optJSONArray("profiles").mapObjects(ConnectJson::profileFromJson).associateBy { it.uid },
+            availability = avObj?.keys()?.asSequence()?.associateWith { uid ->
+                val a = avObj.getJSONObject(uid)
+                WorkerAvailability(a.getBoolean("open"), if (a.isNull("geohash")) null else a.getString("geohash"), if (a.isNull("expiresAtMs")) null else a.getLong("expiresAtMs"))
+            } ?: emptyMap(),
+            stats = statsObj?.keys()?.asSequence()?.associateWith { ConnectJson.statsFromJson(statsObj.getJSONObject(it)) } ?: emptyMap(),
+            bookings = o.optJSONArray("bookings").mapObjects(ConnectJson::bookingFromJson).associateBy { it.id },
+            ratings = o.optJSONArray("ratings").mapObjects(ConnectJson::ratingFromJson),
+            currentUid = if (o.isNull("currentUid")) null else o.getString("currentUid")
+        )
     }
 
     // ---------- auth ----------
 
-    override suspend fun requestCode(phone: String): Result<Unit> =
-        if (normalize(phone).length < 10) Result.failure(ConnectException("Enter a valid phone number")) else Result.success(Unit)
-
-    override suspend fun verifyCode(phone: String, code: String, name: String, role: UserRole): Result<ConnectUser> {
-        if (code != DEMO_OTP) return Result.failure(ConnectException("Wrong code"))
+    override suspend fun signIn(phone: String, pin: String, name: String, role: UserRole): Result<ConnectUser> {
         val normalized = normalize(phone)
         if (normalized.length < 10) return Result.failure(ConnectException("Enter a valid phone number"))
+        if (!Pin.isValid(pin)) return Result.failure(ConnectException("The PIN must be ${Pin.LENGTH} digits"))
         var outcome: Result<ConnectUser>? = null
         state.update { s ->
             val existing = s.users.values.firstOrNull { it.phone == normalized }
-            if (existing != null) {
-                outcome = if (existing.role != role) Result.failure(ConnectException("This number is registered as a ${existing.role.name.lowercase()}"))
-                else Result.success(existing)
-                if (existing.role == role) s.copy(currentUid = existing.uid) else s
-            } else {
-                if (name.isBlank()) { outcome = Result.failure(ConnectException("Enter your name")); return@update s }
-                val user = ConnectUser(UUID.randomUUID().toString(), role, name.trim(), normalized)
-                outcome = Result.success(user)
-                s.copy(users = s.users + (user.uid to user), currentUid = user.uid)
+            when {
+                existing != null && s.pins[normalized] != pin -> { outcome = Result.failure(ConnectException("Wrong PIN for this number")); s }
+                existing != null && existing.role != role ->
+                    { outcome = Result.failure(ConnectException("This number is registered as a ${existing.role.name.lowercase()}")); s }
+                existing != null -> { outcome = Result.success(existing); s.copy(currentUid = existing.uid) }
+                name.isBlank() -> { outcome = Result.failure(ConnectException("Enter your name")); s }
+                else -> {
+                    val user = ConnectUser(UUID.randomUUID().toString(), role, name.trim().take(60), normalized)
+                    outcome = Result.success(user)
+                    s.copy(users = s.users + (user.uid to user), pins = s.pins + (normalized to pin), currentUid = user.uid)
+                }
             }
         }
+        persist()
         return outcome!!
     }
 
     override fun currentUser(): ConnectUser? = state.value.currentUid?.let { state.value.users[it] }
-    override fun signOut() { state.update { it.copy(currentUid = null) } }
+    override fun signOut() { state.update { it.copy(currentUid = null) }; persist() }
 
     private fun normalize(phone: String): String {
         val digits = phone.filter { it.isDigit() }
@@ -88,18 +142,21 @@ class FakeConnectRepository(
         if (user == null || user.role != UserRole.WORKER) return Result.failure(ConnectException("Only a worker account can have a profile"))
         if (profile.rateMinInr <= 0 || profile.rateMaxInr < profile.rateMinInr) return Result.failure(ConnectException("Check the rate range"))
         state.update { it.copy(profiles = it.profiles + (profile.uid to profile), stats = it.stats.withDefault(profile.uid)) }
+        persist()
         return Result.success(Unit)
     }
 
     private fun Map<String, WorkerStats>.withDefault(uid: String) = if (containsKey(uid)) this else this + (uid to WorkerStats())
 
     override suspend fun profileOf(uid: String): WorkerProfile? = state.value.profiles[uid]
+    override suspend fun availabilityOf(uid: String): WorkerAvailability? = state.value.availability[uid]
 
     override suspend fun setAvailability(uid: String, open: Boolean, geohash: String?, expiresAtMs: Long?): Result<Unit> {
         if (!state.value.profiles.containsKey(uid)) return Result.failure(ConnectException("Create your profile first"))
         if (open && geohash == null) return Result.failure(ConnectException("Location is needed to be visible nearby"))
         if (geohash != null && geohash.length > Geo.STORED_PRECISION) return Result.failure(ConnectException("Location is too precise"))
         state.update { it.copy(availability = it.availability + (uid to WorkerAvailability(open, if (open) geohash else null, if (open) expiresAtMs else null))) }
+        persist()
         return Result.success(Unit)
     }
 
@@ -142,6 +199,7 @@ class FakeConnectRepository(
                 }
             }
         }
+        persist()
         return outcome!!
     }
 
@@ -159,6 +217,7 @@ class FakeConnectRepository(
                 if (BookingStateMachine.isRequestExpired(b.status, b.createdAtMs, now)) b.copy(status = BookingStatus.EXPIRED, updatedAtMs = now) else b
             })
         }
+        persist()
     }
 
     override suspend fun perform(bookingId: String, uid: String, action: Action, evidence: EvidenceSummary?, jobId: String?): Result<Booking> {
@@ -197,6 +256,7 @@ class FakeConnectRepository(
             outcome = Result.success(updated)
             s.copy(bookings = s.bookings + (bookingId to updated), stats = stats)
         }
+        persist()
         return outcome!!
     }
 
@@ -226,6 +286,7 @@ class FakeConnectRepository(
                 }
             }
         }
+        persist()
         return outcome!!
     }
 
@@ -233,7 +294,9 @@ class FakeConnectRepository(
 
     // ---------- demo data ----------
 
-    /** Adds clearly flagged sample workers around [center] so the list is not empty in a demo. */
+    override fun prepareForLocation(center: Geo.LatLng) = seedDemoWorkers(center)
+
+    /** Adds (or moves, and refreshes the availability of) clearly flagged sample workers around [center]. */
     fun seedDemoWorkers(center: Geo.LatLng) {
         data class Sample(val name: String, val dLat: Double, val dLng: Double, val services: List<ServiceType>, val min: Int, val max: Int,
                           val ratings: Int, val avg: Double, val verified: Int, val cancels: Int, val completed: Int)
@@ -266,5 +329,6 @@ class FakeConnectRepository(
             }
             next
         }
+        persist()
     }
 }

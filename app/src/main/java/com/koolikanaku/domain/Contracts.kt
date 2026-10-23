@@ -78,7 +78,9 @@ data class Job(
     val hourlyRateInr: Double,
     val paceFactor: Double,
     val holdHeightM: Float,
-    val rooms: List<RoomEntry> = emptyList()
+    val rooms: List<RoomEntry> = emptyList(),
+    /** The find-a-worker booking this job was started from, if any. Contract addition (optional, defaults to null). */
+    val bookingId: String? = null
 )
 
 data class MinMax(val low: Double, val high: Double)

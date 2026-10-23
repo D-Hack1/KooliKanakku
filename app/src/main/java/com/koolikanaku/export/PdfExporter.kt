@@ -165,7 +165,7 @@ object PdfExporter {
             drawEvidenceAppendix()
 
             // Mandatory Disclaimer
-            ensureSpace(64f)
+            ensureSpace(100f)
             drawDisclaimer()
 
             finishCurrentPage()
@@ -385,7 +385,8 @@ object PdfExporter {
 
         private fun drawDisclaimer() {
             val disclaimerText = "Disclaimer: Estimate computed completely on-device. Hashes are of the original captures.\nEmbedded photos are downscaled for document portability.\nTamper-evident, not tamper-proof: a phone clock can be changed.\nKooliKanakku operates 100% offline."
-            val lines = disclaimerText.split("\n")
+            val fingerprint = com.koolikanaku.capture.BillFingerprint.compute(job, quote)
+            val lines = disclaimerText.split("\n") + listOf("Bill fingerprint (SHA-256 of the whole bill and every photo hash):", fingerprint.take(32), fingerprint.drop(32))
             lines.forEach { line ->
                 canvas?.drawText(line, MARGIN, currentY, subTitlePaint)
                 currentY += 12f

@@ -4,6 +4,15 @@ plugins {
     alias(libs.plugins.kotlin.compose)
 }
 
+// Backend settings come from a .env file in the project root (never committed). Without it, the
+// app runs on the built-in demo backend. See .env.example.
+val dotEnv: Map<String, String> = rootProject.file(".env").takeIf { it.exists() }?.readLines().orEmpty()
+    .map { it.trim() }
+    .filter { it.isNotEmpty() && !it.startsWith("#") && it.contains("=") }
+    .associate { line -> line.substringBefore("=").trim() to line.substringAfter("=").trim().trim('"', '\'') }
+
+fun envValue(key: String): String = (dotEnv[key] ?: "").replace("\\", "").replace("\"", "")
+
 android {
     namespace = "com.koolikanaku"
     compileSdk = 35
@@ -16,6 +25,9 @@ android {
         versionName = "1.0"
 
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+
+        buildConfigField("String", "SUPABASE_URL", "\"${envValue("SUPABASE_URL")}\"")
+        buildConfigField("String", "SUPABASE_ANON_KEY", "\"${envValue("SUPABASE_ANON_KEY")}\"")
     }
 
     buildTypes {
@@ -39,6 +51,7 @@ android {
 
     buildFeatures {
         compose = true
+        buildConfig = true
     }
 
     androidResources {
@@ -80,6 +93,7 @@ dependencies {
 
     // Unit Testing
     testImplementation(libs.junit)
+    testImplementation("org.json:json:20240303")   // real org.json so JSON code can be unit tested on the JVM
     testImplementation("org.mockito:mockito-core:5.14.2")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)

@@ -12,6 +12,8 @@ import com.koolikanaku.domain.TaskSource
 import com.koolikanaku.export.PdfExporter
 import com.koolikanaku.ui.AppViewModel
 import com.koolikanaku.ui.SizeMethod
+import com.koolikanaku.connect.logic.BookingStateMachine.Action as BookingAction
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
@@ -112,6 +114,56 @@ class EndToEndTest {
         val rechecked = HashVerifier.checkSavedPhotos(context, vm.job!!)
         assertEquals(false, rechecked.first { it.photo.id == after.id }.intact)
         assertEquals(room.photos.size - 1, rechecked.count { it.intact })
+    }
+
+    @Test fun aBookingHandsOverToTheEstimateAndComesBackAsAVerifiedRating(): Unit = runBlocking {
+        assumeTrue("Missing test photos", File(photoDir, "bathroom.jpg").exists() && File(photoDir, "kitchen.jpg").exists())
+        val backend = com.koolikanaku.connect.data.FakeConnectRepository()
+        val pin = "123456"
+        // worker opens for work near Kochi; owner books
+        val worker = backend.signIn("9000000001", pin, "Asha", com.koolikanaku.connect.model.UserRole.WORKER).getOrThrow()
+        backend.saveProfile(com.koolikanaku.connect.model.WorkerProfile(worker.uid, "Asha", worker.phone, listOf("Malayalam"),
+            listOf(com.koolikanaku.connect.model.ServiceType.GENERAL), 200, 300)).getOrThrow()
+        backend.setAvailability(worker.uid, true, com.koolikanaku.connect.logic.Geo.encode(9.9312, 76.2673), System.currentTimeMillis() + 3_600_000).getOrThrow()
+        backend.signOut()
+        val owner = backend.signIn("9000000009", pin, "Omar", com.koolikanaku.connect.model.UserRole.OWNER).getOrThrow()
+        val booking = backend.request(owner.uid, worker.uid, "now", "Edappally", "1 bathroom").getOrThrow()
+        backend.perform(booking.id, worker.uid, BookingAction.ACCEPT).getOrThrow()
+        backend.perform(booking.id, owner.uid, BookingAction.ARRIVE).getOrThrow()
+
+        // the owner's phone starts the estimate for this booking
+        val vm = AppViewModel()
+        vm.attachStorage(context)
+        val jobId = vm.startJobForBooking(com.koolikanaku.domain.AppMode.OWNER_QUOTE, 250, booking.id)
+        backend.perform(booking.id, owner.uid, BookingAction.START, jobId = jobId).getOrThrow()
+        assertEquals(booking.id, vm.job!!.bookingId)
+        assertEquals(com.koolikanaku.domain.AppMode.OWNER_QUOTE, vm.job!!.mode)
+
+        val room = vm.addRoom()
+        addPhoto(vm, room, "bathroom.jpg", PhotoRole.WIDE)
+        addPhoto(vm, room, "bathroom.jpg", PhotoRole.TOUGHEST)
+        vm.setManualSizeSqFt(room, 60.0)
+        vm.goToRoomConfirmFromCapture(room)
+        vm.analyzeRoom(context, room)
+        vm.selectAllTasks(room, true)
+        addPhoto(vm, room, "kitchen.jpg", PhotoRole.AFTER)
+        assertTrue(vm.finishJob())
+
+        // the bookingId survives the app being closed
+        vm.awaitPendingSave()
+        val resumed = AppViewModel(); resumed.attachStorage(context)
+        assertEquals(booking.id, resumed.job!!.bookingId)
+
+        // finishing the bill completes the booking with hashes only
+        val evidence = com.koolikanaku.connect.logic.EvidenceSummaryBuilder.from(vm.job!!, vm.quote!!, java.time.Instant.now().toString())
+        assertTrue(evidence.isVerified)
+        assertEquals(com.koolikanaku.capture.BillFingerprint.compute(vm.job!!, vm.quote!!), evidence.billFingerprint)
+        assertEquals(vm.job!!.rooms.single().photos.first { it.role == PhotoRole.AFTER }.sha256Hash, evidence.afterPhotoHashes.single())
+        backend.perform(booking.id, owner.uid, BookingAction.COMPLETE, evidence = evidence).getOrThrow()
+        val rating = backend.rate(booking.id, owner.uid, 5, listOf("careful"), "Great work").getOrThrow()
+        assertTrue("a documented job gives a verified rating", rating.verified)
+        val stats = backend.observeOpenWorkers(com.koolikanaku.connect.logic.Geo.searchPrefixes(9.9312, 76.2673)).first().single().stats
+        assertEquals(1, stats.verifiedCount)
     }
 
     @Test fun finishIsBlockedUntilEveryRoomHasASize() {

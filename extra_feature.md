@@ -1,6 +1,6 @@
 # KooliKanakku: Extra Feature Spec — "Find a Worker" (connected layer)
 
-**Status:** proposal / spec, nothing built yet. Written for Team JangoMar.
+**Status:** built on branch `feature/find-worker` (see "What was actually built" at the end for where it differs from this spec). Written for Team JangoMar.
 **One line:** an optional online layer on top of the offline estimator. Workers mark themselves open for work, owners find and book nearby workers, and when the worker arrives the existing offline flow (estimate, photos, hashes, bill, PDF) runs exactly as it does today. Ratings come out of that flow, so they are backed by evidence.
 
 > The offline core stays the main part of the pitch. This layer is added on top of it and is never required by it.
@@ -245,3 +245,21 @@ Push notifications when the app is closed, scheduled bookings (do "now" only), f
 - The offline estimate and evidence engine is the product. It works in Airplane Mode and never uploads photos.
 - The connected layer adds discovery, booking and ratings that are tied to real, hashed evidence. This is what makes it different from a generic star-rating marketplace.
 - What is built is a vertical slice with test accounts. Trust and safety, moderation and scale are the roadmap, and we say so plainly.
+
+---
+
+## 16. What was actually built (differences from the spec above)
+
+| Spec | Built |
+|---|---|
+| Firebase recommended | **Supabase** (Postgres + PostgREST + GoTrue). Setup steps and the SQL are in `supabase/`. |
+| Phone OTP login | **Phone number + 6-digit PIN**, no SMS (Supabase has no built-in SMS). Weaker; the upgrade path is a real SMS provider. |
+| Real-time listeners | **Polling every 3 seconds**, only emitting on change. No push when the app is closed. |
+| Backend always needed | **Demo backend** (in-memory, saved on the phone, labelled sample workers) is used when `.env` has no Supabase keys, so the feature demos on one phone with no setup. |
+| Play-services location | Framework `LocationManager`, **coarse permission only**, with a "Use Kochi as my area" fallback. |
+| Rules in security rules | Rules live in **SQL functions** (`request_booking`, `booking_action`, `rate_booking`, `set_availability`) and are tested against a real Postgres (`supabase/test_schema.py`, 55 checks) and the real web layer (`supabase/test_rest.py`, 24 checks). |
+| Separate offline-only build flavor | **Not done.** `INTERNET` and `ACCESS_COARSE_LOCATION` are in the main manifest. The claim is instead enforced by a unit test (`OfflineCoreGuardTest`) that fails if `ai`, `domain`, `capture` or `export` import the connected layer or any networking library. |
+| Hand-off | `Job.bookingId` (optional contract addition). "Start the estimate" creates the job at the worker's rate (worker phone: estimate, owner phone: quotation). "Finish the booking" on the Bill sends only the bill fingerprint, totals and after-photo hashes. |
+| Bill fingerprint | Built: `BillFingerprint` (SHA-256 over the whole bill and every photo hash), printed in the PDF. |
+| Malayalam strings | New strings are **English only** for now. |
+| Not built | Push notifications, scheduled bookings, worker rating of owners, chat, ID verification, moderation, a map view. |

@@ -170,7 +170,7 @@ class AppViewModel : ViewModel() {
     fun changePresetIndex(value: Int) { presetIndex = value; persist() }
     fun clearCaptureError() { captureError = null }
 
-    fun startJob() {
+    fun startJob(bookingId: String? = null) {
         val rate = rateText.toDoubleOrNull()
             ?: if (mode == AppMode.OWNER_QUOTE) Constants.DEFAULT_MARKET_RATE_INR_PER_HR else Constants.DEFAULT_WORKER_RATE_INR_PER_HR
         val height = heightCm.toFloatOrNull()
@@ -184,8 +184,21 @@ class AppViewModel : ViewModel() {
             hourlyRateInr = rate,
             paceFactor = if (mode == AppMode.OWNER_QUOTE) 1.0 else paceFactor,
             holdHeightM = if (height != null) height * Constants.HOLD_HEIGHT_FACTOR / 100f else Constants.DEFAULT_HOLD_HEIGHT_M,
-            rooms = emptyList()
+            rooms = emptyList(),
+            bookingId = bookingId
         )
+    }
+
+    /**
+     * Starts the estimate for a find-a-worker booking: the worker's phone runs it as an estimate at their own
+     * rate, the owner's as a quotation at the worker's rate. Returns the new job's id.
+     */
+    fun startJobForBooking(mode: AppMode, rateInr: Int, bookingId: String): String {
+        changeMode(mode)
+        changeRateText(rateInr.toString())
+        changePaceFactor(1.0)
+        startJob(bookingId)
+        return job!!.id
     }
 
     /** Returns the new room's id and makes it current. */
