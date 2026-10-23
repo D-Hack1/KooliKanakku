@@ -34,6 +34,7 @@ runs/
 .venv/
 venv/
 __pycache__/
+*.tflite
 
 # OS junk
 .DS_Store
@@ -45,4 +46,4 @@ Thumbs.db
 plan.md
 worksplit.md
 1.md
-
+labels.txt
