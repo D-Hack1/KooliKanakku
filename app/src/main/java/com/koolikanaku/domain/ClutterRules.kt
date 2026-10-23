@@ -18,7 +18,15 @@ object ClutterRules {
         "knife",
         "spoon",
         "cell phone",
-        "teddy bear"
+        "teddy bear",
+        // Open Images only (secondary detector)
+        "mug",
+        "plate",
+        "footwear",
+        "toy",
+        "towel",
+        "plastic bag",
+        "tin can"
     )
 
     fun isClutterLabel(label: String): Boolean = label.trim().lowercase() in CLUTTER_LABELS

@@ -68,13 +68,16 @@ object TaskCatalog {
     )
 
     /**
-     * Labels the bundled detector (COCO yolov8n, see assets/labels.txt) can emit that become checklist rows.
-     * Catalog keys with no COCO equivalent (gas stove, countertop, shower...) are still offered as
-     * TEMPLATE tasks and via "+ Add task"; they are just never DETECTED.
+     * Labels the two bundled detectors can emit that become checklist rows: COCO yolov8n
+     * (assets/labels.txt) and the extra Open Images classes (assets/labels_oiv7.txt, see
+     * DetectionMerger.SECONDARY_FIXTURES). Catalog keys neither model can see (e.g. sink taps) are
+     * still offered as TEMPLATE tasks and via "+ Add task".
      */
     val TASK_LABELS: Set<String> = setOf(
         "toilet", "sink", "oven", "microwave", "refrigerator",
-        "bed", "couch", "chair", "dining table", "tv"
+        "bed", "couch", "chair", "dining table", "tv",
+        "countertop", "cabinetry", "cupboard", "bathtub", "shower", "window",
+        "mirror", "gas stove", "bathroom cabinet", "ceiling fan", "wardrobe"
     )
 
     fun resolveCatalogKey(rawLabel: String): String? {

@@ -6,8 +6,8 @@ object LabelLoader {
 
     const val LABELS_ASSET = "labels.txt"
 
-    fun load(context: Context): List<String> =
-        context.assets.open(LABELS_ASSET).bufferedReader().use { parse(it.readText()) }
+    fun load(context: Context, asset: String = LABELS_ASSET): List<String> =
+        context.assets.open(asset).bufferedReader().use { parse(it.readText()) }
 
     /** One label per line, in class-index order. Blank trailing lines are dropped. */
     fun parse(text: String): List<String> =

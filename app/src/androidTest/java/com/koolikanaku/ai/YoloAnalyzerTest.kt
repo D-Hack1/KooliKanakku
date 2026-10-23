@@ -21,6 +21,12 @@ class YoloAnalyzerTest {
         assertEquals("person", labels.first())
     }
 
+    @Test fun bothDetectorsLoadAndTheSecondaryHas601Classes() {
+        val context = InstrumentationRegistry.getInstrumentation().targetContext
+        assertTrue("secondary (Open Images) detector loaded", YoloAnalyzer.hasSecondary)
+        assertEquals(601, LabelLoader.load(context, "labels_oiv7.txt").size)
+    }
+
     @Test fun blankImageProducesNoCrashAndBoxesStayInBounds() = runBlocking {
         val bmp = Bitmap.createBitmap(1280, 960, Bitmap.Config.ARGB_8888).apply { eraseColor(Color.GRAY) }
         val dets = detectObjects(bmp)
