@@ -24,7 +24,9 @@ import androidx.compose.material.icons.outlined.Add
 import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.CameraAlt
 import androidx.compose.material.icons.outlined.Close
+import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.PhotoCamera
+import androidx.compose.material.icons.outlined.Visibility
 import androidx.compose.material3.Button
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -50,6 +52,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
+import com.koolikanaku.domain.EvidencePhoto
 import com.koolikanaku.ui.CaptureTarget
 import com.koolikanaku.ui.SizeMethod
 import com.koolikanaku.ui.components.CrosshairOverlay
@@ -80,8 +83,9 @@ fun RoomCaptureScreen(
     presetIndex: Int?,
     presetLabels: List<Pair<String, String>>,
     onPresetChange: (Int) -> Unit,
-    widePhotos: List<android.net.Uri> = emptyList(),
-    toughPhotos: List<android.net.Uri> = emptyList(),
+    widePhotos: List<EvidencePhoto> = emptyList(),
+    toughPhotos: List<EvidencePhoto> = emptyList(),
+    onDeletePhoto: (String) -> Unit = {},
     canAddWide: Boolean,
     canAddTough: Boolean,
     readyToAnalyze: Boolean,
@@ -129,7 +133,7 @@ fun RoomCaptureScreen(
                             fontWeight = if (readyToAnalyze) FontWeight.SemiBold else FontWeight.Normal
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedButton(onClick = { sheetOpen = true }, modifier = Modifier.width(120.dp).height(54.dp)) {
+                            OutlinedButton(onClick = { sheetOpen = true }, modifier = Modifier.height(54.dp)) {
                                 Icon(Icons.Outlined.Add, contentDescription = null)
                                 Text(" " + stringResource(R.string.capture_photo_button))
                             }
@@ -237,11 +241,19 @@ fun RoomCaptureScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                widePhotos.forEach { uri ->
-                                    PhotoThumb(uri = uri, onClick = { openPhotoExternally(context, uri) })
-                                }
                                 if (canAddWide) {
                                     AddPhotoTile(stringResource(R.string.common_add)) { onOpenCamera(CaptureTarget.WIDE) }
+                                }
+                                widePhotos.forEach { photo ->
+                                    var actionsFor by remember { mutableStateOf(false) }
+                                    PhotoThumb(uri = photo.uri, onClick = { actionsFor = true })
+                                    if (actionsFor) {
+                                        PhotoActionsSheet(
+                                            onView = { actionsFor = false; openPhotoExternally(context, photo.uri) },
+                                            onDelete = { actionsFor = false; onDeletePhoto(photo.id) },
+                                            onDismiss = { actionsFor = false }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -262,11 +274,19 @@ fun RoomCaptureScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                                toughPhotos.forEach { uri ->
-                                    PhotoThumb(uri = uri, onClick = { openPhotoExternally(context, uri) })
-                                }
                                 if (canAddTough) {
                                     AddPhotoTile(stringResource(R.string.capture_close_up)) { onOpenCamera(CaptureTarget.TOUGHEST) }
+                                }
+                                toughPhotos.forEach { photo ->
+                                    var actionsFor by remember { mutableStateOf(false) }
+                                    PhotoThumb(uri = photo.uri, onClick = { actionsFor = true })
+                                    if (actionsFor) {
+                                        PhotoActionsSheet(
+                                            onView = { actionsFor = false; openPhotoExternally(context, photo.uri) },
+                                            onDelete = { actionsFor = false; onDeletePhoto(photo.id) },
+                                            onDismiss = { actionsFor = false }
+                                        )
+                                    }
                                 }
                             }
                         }
@@ -308,17 +328,27 @@ fun RoomCaptureScreen(
 
 @Composable
 private fun StepBlock(number: Int, done: Boolean, title: String, content: @Composable () -> Unit) {
+    val circleColor by androidx.compose.animation.animateColorAsState(
+        if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        label = "stepCircleColor"
+    )
+    val contentColor by androidx.compose.animation.animateColorAsState(
+        if (done) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+        label = "stepContentColor"
+    )
     Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         Surface(
             shape = CircleShape,
-            color = if (done) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+            color = circleColor,
             border = BorderStroke(if (done) 0.dp else 1.dp, MaterialTheme.colorScheme.outline),
-            contentColor = if (done) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+            contentColor = contentColor,
             modifier = Modifier.size(28.dp)
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                if (done) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(14.dp))
-                else Text(number.toString(), style = MaterialTheme.typography.labelLarge)
+                androidx.compose.animation.Crossfade(targetState = done, label = "stepDoneIcon") { isDone ->
+                    if (isDone) Icon(Icons.Filled.Check, contentDescription = null, modifier = Modifier.size(14.dp))
+                    else Text(number.toString(), style = MaterialTheme.typography.labelLarge)
+                }
             }
         }
         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(10.dp)) {
@@ -386,15 +416,22 @@ private fun PresetTile(label: String, sub: String, selected: Boolean, onClick: (
 
 @Composable
 private fun PhotoThumb(uri: android.net.Uri? = null, onClick: (() -> Unit)? = null, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier
-            .size(84.dp, 112.dp)
-            .let { if (onClick != null) it.clickable(onClick = onClick) else it },
-        shape = RoundedCornerShape(10.dp),
-        color = MaterialTheme.colorScheme.primaryContainer,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+    val visibleState = remember { androidx.compose.animation.core.MutableTransitionState(false).apply { targetState = true } }
+    androidx.compose.animation.AnimatedVisibility(
+        visibleState = visibleState,
+        enter = androidx.compose.animation.fadeIn(androidx.compose.animation.core.tween(220)) +
+            androidx.compose.animation.scaleIn(androidx.compose.animation.core.tween(220), initialScale = 0.85f)
     ) {
-        PhotoImage(uri = uri, modifier = Modifier.fillMaxSize())
+        Surface(
+            modifier = modifier
+                .size(84.dp, 112.dp)
+                .let { if (onClick != null) it.clickable(onClick = onClick) else it },
+            shape = RoundedCornerShape(10.dp),
+            color = MaterialTheme.colorScheme.primaryContainer,
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
+        ) {
+            PhotoImage(uri = uri, modifier = Modifier.fillMaxSize())
+        }
     }
 }
 
@@ -413,6 +450,17 @@ private fun AddPhotoTile(label: String, onClick: () -> Unit) {
         ) {
             Icon(Icons.Outlined.Add, contentDescription = null, tint = MaterialTheme.colorScheme.secondary)
             Text(label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.secondary, textAlign = androidx.compose.ui.text.style.TextAlign.Center)
+        }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun PhotoActionsSheet(onView: () -> Unit, onDelete: () -> Unit, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            SheetOption(stringResource(R.string.capture_photo_view), Icons.Outlined.Visibility, onView)
+            SheetOption(stringResource(R.string.capture_photo_delete), Icons.Outlined.Delete, onDelete)
         }
     }
 }

@@ -30,7 +30,17 @@ object TaskCatalog {
         CatalogItem("chair", "Wipe chair", "കസേര തുടയ്ക്കുക", 2, 2.0),
         CatalogItem("television", "Microfiber wipe TV / display screen", "ടിവി സ്ക്രീൻ തുടയ്ക്കുക", 3, 3.0),
         CatalogItem("window", "Clean window glass, sill & grill", "ജനൽ ചില്ലും ഗ്രില്ലും തുടയ്ക്കുക", 8, 8.0),
-        CatalogItem("ceiling fan", "Dust ceiling fan blades", "സീലിംഗ് ഫാൻ തുടയ്ക്കുക", 6, 5.0)
+        CatalogItem("ceiling fan", "Dust ceiling fan blades", "സീലിംഗ് ഫാൻ തുടയ്ക്കുക", 6, 5.0),
+        CatalogItem("curtain", "Dust or wash curtains", "കർട്ടൻ തുടയ്ക്കുക / കഴുകുക", 10, 5.0),
+        CatalogItem("exhaust fan", "Clean exhaust fan blades & grille", "എക്സോസ്റ്റ് ഫാൻ വൃത്തിയാക്കുക", 10, 8.0),
+        CatalogItem("switchboard", "Wipe switches & sockets", "സ്വിച്ച്ബോർഡ് തുടയ്ക്കുക", 4, 2.0),
+        CatalogItem("door", "Wipe door & handles", "വാതിലും ഹാൻഡിലും തുടയ്ക്കുക", 6, 3.0),
+        CatalogItem("ac unit", "Wipe AC unit & vents", "എസി യൂണിറ്റ് തുടയ്ക്കുക", 10, 5.0),
+        CatalogItem("rug", "Vacuum / shake out rug", "പരവതാനി വൃത്തിയാക്കുക", 8, 5.0),
+        CatalogItem("balcony", "Sweep & wipe balcony floor & railing", "ബാൽക്കണി തുടച്ചു വൃത്തിയാക്കുക", 12, 5.0),
+        CatalogItem("bookshelf", "Dust bookshelf & items", "പുസ്തക അലമാര തുടയ്ക്കുക", 8, 5.0),
+        CatalogItem("trash bin", "Empty & wipe trash bin", "ചവർ ബിൻ ഒഴിച്ച് തുടയ്ക്കുക", 4, 2.0),
+        CatalogItem("wall", "Spot clean wall marks", "ചുമരിലെ പാടുകൾ വൃത്തിയാക്കുക", 10, 3.0)
     ).associateBy { it.key }
 
     private val SYNONYMS: Map<String, String> = mapOf(

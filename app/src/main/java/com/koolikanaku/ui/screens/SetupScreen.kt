@@ -116,8 +116,8 @@ fun SetupScreen(
                         Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                         LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
             }
@@ -184,35 +184,6 @@ fun SetupScreen(
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(stringResource(R.string.setup_pace_label), style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                stringResource(R.string.setup_pace_hint),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-                            PACE_OPTIONS.forEach { option ->
-                                PaceCard(
-                                    label = stringResource(option.labelRes),
-                                    multiplierText = "${option.factor}×",
-                                    selected = paceFactor == option.factor,
-                                    onClick = { onPaceChange(option.factor) },
-                                    modifier = Modifier.weight(1f)
-                                )
-                            }
-                        }
-                        Text(
-                            stringResource(R.string.setup_pace_note),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Text(stringResource(R.string.setup_height_label), style = MaterialTheme.typography.titleMedium)
                             Text(
                                 stringResource(R.string.setup_height_optional),
@@ -276,12 +247,12 @@ private fun LanguageToggle(language: AppLanguage, onLanguageChange: (AppLanguage
             selected = language == AppLanguage.EN,
             onClick = { onLanguageChange(AppLanguage.EN) },
             shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-        ) { Text(stringResource(R.string.language_english)) }
+        ) { Text(stringResource(R.string.language_english_short)) }
         SegmentedButton(
             selected = language == AppLanguage.ML,
             onClick = { onLanguageChange(AppLanguage.ML) },
             shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-        ) { Text(stringResource(R.string.language_malayalam)) }
+        ) { Text(stringResource(R.string.language_malayalam_short)) }
     }
 }
 

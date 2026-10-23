@@ -8,19 +8,25 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.compose.animation.Crossfade
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.koolikanaku.ai.initDetector
 import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.AppViewModel
+import com.koolikanaku.ui.components.AnimatedSplash
 import com.koolikanaku.ui.navigation.AppNavGraph
 import com.koolikanaku.ui.theme.KooliKanakuTheme
 import java.util.Locale
@@ -48,10 +54,21 @@ class MainActivity : ComponentActivity() {
                 }
             }
 
+            var showSplash by remember { mutableStateOf(true) }
+
             KooliKanakuTheme(darkTheme = vm.darkTheme) {
                 Surface(modifier = Modifier.fillMaxSize(), color = MaterialTheme.colorScheme.background) {
-                    CompositionLocalProvider(LocalContext provides localizedContext) {
-                        AppNavGraph(vm = vm)
+                    Crossfade(targetState = showSplash, animationSpec = tween(350), label = "splash") { splashing ->
+                        if (splashing) {
+                            AnimatedSplash(
+                                backgroundColor = MaterialTheme.colorScheme.background,
+                                onFinished = { showSplash = false }
+                            )
+                        } else {
+                            CompositionLocalProvider(LocalContext provides localizedContext) {
+                                AppNavGraph(vm = vm)
+                            }
+                        }
                     }
                 }
             }

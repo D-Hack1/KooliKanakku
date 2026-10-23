@@ -124,6 +124,7 @@ fun RoomConfirmScreen(
     onSelectAll: (Boolean) -> Unit,
     availableCatalog: List<CatalogEntry>,
     onAddCatalogTask: (CatalogEntry) -> Unit,
+    onAddCustomTask: (name: String, minutes: Int) -> Unit = { _, _ -> },
     countRows: List<CountRowUi>,
     estimateHoursText: String,
     estimatePayText: String,
@@ -378,6 +379,10 @@ fun RoomConfirmScreen(
             language = language,
             onAddTask = {
                 onAddCatalogTask(it)
+                addSheetOpen = false
+            },
+            onAddCustomTask = { name, minutes ->
+                onAddCustomTask(name, minutes)
                 addSheetOpen = false
             },
             onDismissRequest = { addSheetOpen = false },

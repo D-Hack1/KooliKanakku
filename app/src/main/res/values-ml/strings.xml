@@ -10,6 +10,8 @@
     <string name="offline_badge">ഓഫ്‌ലൈൻ</string>
     <string name="language_english">English</string>
     <string name="language_malayalam">മലയാളം</string>
+    <string name="language_english_short">EN</string>
+    <string name="language_malayalam_short">മ</string>
     <string name="setup_dark_mode">ഡാർക്ക് മോഡിലേക്ക് മാറുക</string>
     <string name="setup_light_mode">ലൈറ്റ് മോഡിലേക്ക് മാറുക</string>
 
@@ -87,6 +89,8 @@
     <string name="capture_toughest_title">ഏറ്റവും അഴുക്കുള്ള ഭാഗം</string>
     <string name="capture_toughest_hint">ഏറ്റവും അഴുക്കുള്ള പ്രതലം ഫ്രെയിം നിറയെ വരട്ടെ — കറ പിടിച്ച ടൈൽ, എണ്ണമയമുള്ള അടുപ്പ്. സാധാരണ അഴുക്കുള്ള ഭാഗം തിരഞ്ഞെടുക്കുക.</string>
     <string name="capture_close_up">ക്ലോസ്-അപ്പ് എടുക്കുക</string>
+    <string name="capture_photo_view">ഫോട്ടോ കാണുക</string>
+    <string name="capture_photo_delete">ഫോട്ടോ ഇല്ലാതാക്കുക</string>
     <string name="capture_photo_button">ഫോട്ടോ</string>
     <string name="capture_analyze_button">മുറി വിശകലനം ചെയ്യുക</string>
     <string name="capture_sheet_which_photo">ഏത് ഫോട്ടോ?</string>
@@ -166,6 +170,9 @@
     <string name="confirm_increase_quantity">ഒന്ന് കൂട്ടുക: %1$s</string>
     <string name="confirm_add_task">വിട്ടുപോയ ജോലി ചേർക്കുക</string>
     <string name="confirm_add_task_title">ജോലി ചേർക്കുക</string>
+    <string name="confirm_custom_task_title">സ്വന്തം ജോലി ടൈപ്പ് ചെയ്യുക</string>
+    <string name="confirm_custom_task_name">ജോലിയുടെ പേര്</string>
+    <string name="confirm_custom_task_minutes">മിനിറ്റ്</string>
     <string name="confirm_no_more_tasks">എല്ലാ ജോലികളും ലിസ്റ്റിൽ ഉണ്ട്.</string>
     <string name="confirm_estimate_label">സമയവും കൂലിയും (ഏകദേശം)</string>
     <string name="confirm_save_room">മുറി സേവ് ചെയ്യുക</string>

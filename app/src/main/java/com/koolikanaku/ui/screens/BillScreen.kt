@@ -51,7 +51,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
-import com.koolikanaku.ui.components.HashBadge
 import com.koolikanaku.ui.components.PhotoImage
 import com.koolikanaku.ui.components.openPhotoExternally
 import androidx.compose.ui.platform.LocalContext
@@ -134,7 +133,7 @@ fun BillScreen(
                         Icon(Icons.Outlined.PictureAsPdf, contentDescription = null)
                         Text(" " + stringResource(R.string.bill_export_pdf), style = MaterialTheme.typography.titleLarge)
                     }
-                    OutlinedButton(onClick = onShare, modifier = Modifier.width(124.dp).height(54.dp)) {
+                    OutlinedButton(onClick = onShare, modifier = Modifier.height(54.dp)) {
                         Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
                         Text(" " + stringResource(R.string.bill_share))
                     }
@@ -253,10 +252,7 @@ fun BillScreen(
                                                 if (item.afterUri != null) PhotoImage(uri = item.afterUri, modifier = Modifier.fillMaxSize())
                                                 else Box(contentAlignment = Alignment.Center) { Text(stringResource(R.string.bill_after_missing), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
                                             }
-                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
-                                                Text(stringResource(R.string.bill_after_label), style = MaterialTheme.typography.labelMedium)
-                                                if (item.afterHashShort != null) HashBadge(item.afterHashShort)
-                                            }
+                                            Text(stringResource(R.string.bill_after_label), style = MaterialTheme.typography.labelMedium)
                                         }
                                     }
                                     OutlinedButton(onClick = { onAddAfterPhoto(item.roomId) }, modifier = Modifier.fillMaxWidth()) {
@@ -299,7 +295,6 @@ fun BillScreen(
                                                 PhotoImage(uri = photo.uri, modifier = Modifier.fillMaxSize())
                                             }
                                             Text(photo.label, style = MaterialTheme.typography.labelMedium)
-                                            HashBadge(photo.hashShort)
                                         }
                                     }
                                 }
@@ -337,14 +332,6 @@ fun BillScreen(
                     PhotoImage(uri = photo.uri, modifier = Modifier.fillMaxSize(), cornerRadiusDp = 14)
                 }
                 Text(photo.label, style = MaterialTheme.typography.headlineSmall)
-                Text(stringResource(R.string.bill_hash_of), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.background, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
-                    Text(
-                        photo.fullHash,
-                        style = com.koolikanaku.ui.theme.KooliKanakuMonoStyle,
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-                    )
-                }
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(stringResource(R.string.bill_taken_label), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(photo.timeText)

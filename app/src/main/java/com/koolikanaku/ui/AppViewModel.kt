@@ -225,6 +225,10 @@ class AppViewModel : ViewModel() {
         }
     }
 
+    fun removePhoto(roomId: String, photoId: String) {
+        updateRoom(roomId) { room -> room.copy(photos = room.photos.filter { it.id != photoId }) }
+    }
+
     fun onCaptureError(message: String) {
         captureError = message
     }
@@ -271,7 +275,9 @@ class AppViewModel : ViewModel() {
         analysisError = null
         val scores = mutableMapOf<String, StainResult>()
         val appContext = context.applicationContext
-        val detectorReady = initDetector(appContext)   // retries if the launch-time load failed
+        // initDetector() loads/builds the TFLite interpreter synchronously (native, blocking) -
+        // never run that on the caller's dispatcher (LaunchedEffect defaults to Main) or it freezes the UI.
+        val detectorReady = withContext(Dispatchers.Default) { initDetector(appContext) }
         var detectionProblem: String? = null
         val useCase = AnalyzeRoom(
             loadBitmap = { photo -> withContext(Dispatchers.IO) { PhotoStore.getDownscaledBitmap(appContext, photo.uri) } },
@@ -369,6 +375,24 @@ class AppViewModel : ViewModel() {
                 quantity = 1,
                 minutesPerUnit = item.minutesPerUnit,
                 materialCostInr = item.materialCostInr,
+                isSelected = true,
+                source = TaskSource.MANUAL
+            )
+            room.copy(tasks = room.tasks + task)
+        }
+    }
+
+    fun addCustomTask(roomId: String, name: String, minutes: Int) {
+        updateRoom(roomId) { room ->
+            val key = "custom_${UUID.randomUUID()}"
+            val task = CleaningTask(
+                id = "${roomId}_${key}",
+                catalogKey = key,
+                titleEn = name,
+                titleMl = name,
+                quantity = 1,
+                minutesPerUnit = minutes,
+                materialCostInr = 0.0,
                 isSelected = true,
                 source = TaskSource.MANUAL
             )

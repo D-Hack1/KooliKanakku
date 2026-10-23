@@ -12,6 +12,9 @@ import java.io.FileInputStream
 import java.nio.ByteBuffer
 import java.nio.ByteOrder
 import java.nio.channels.FileChannel
+import java.util.concurrent.Executors
+import java.util.concurrent.TimeUnit
+import java.util.concurrent.TimeoutException
 
 /** Inference size of the exported yolov8n (COCO, 80 classes) model. */
 private const val INPUT_SIZE = 640
@@ -41,6 +44,10 @@ object YoloAnalyzer {
     private var labels: List<String> = emptyList()
     private var channelsFirstInput = true   // [1,3,H,W] vs [1,H,W,3]
     private var outputShape = intArrayOf()
+    // interp.run() is a blocking native call coroutine cancellation can't interrupt; submitting it
+    // here lets a stuck call be abandoned (via Future.get timeout) instead of hanging the UI forever.
+    // A cached pool (not a single thread) so one stuck call never blocks later calls from even starting.
+    private val inferenceExecutor = Executors.newCachedThreadPool()
 
     @Synchronized
     fun init(context: Context) {
@@ -63,7 +70,15 @@ object YoloAnalyzer {
         val numFeatures = if (featuresFirst) d1 else d2
         val numAnchors = if (featuresFirst) d2 else d1
         val raw = Array(1) { Array(d1) { FloatArray(d2) } }
-        synchronized(this@YoloAnalyzer) { interp.run(input, raw) }
+        val ran = try {
+            inferenceExecutor.submit { synchronized(this@YoloAnalyzer) { interp.run(input, raw) } }
+                .get(12, TimeUnit.SECONDS)
+            true
+        } catch (e: TimeoutException) {
+            Log.e("YoloAnalyzer", "Inference timed out after 12s; skipping this photo's detections")
+            false
+        }
+        if (!ran) return@withContext emptyList()
 
         val candidates = YoloPostProcessor.parse(
             output = raw[0],

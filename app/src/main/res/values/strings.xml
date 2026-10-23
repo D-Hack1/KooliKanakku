@@ -10,6 +10,8 @@
     <string name="offline_badge">Offline</string>
     <string name="language_english">English</string>
     <string name="language_malayalam">മലയാളം</string>
+    <string name="language_english_short">EN</string>
+    <string name="language_malayalam_short">മ</string>
     <string name="setup_dark_mode">Switch to dark mode</string>
     <string name="setup_light_mode">Switch to light mode</string>
 
@@ -87,6 +89,8 @@
     <string name="capture_toughest_title">Toughest spot</string>
     <string name="capture_toughest_hint">Fill the frame with the dirtiest surface, like stained tile or a greasy hob. Pick a typical dirty patch.</string>
     <string name="capture_close_up">Take close-up</string>
+    <string name="capture_photo_view">View photo</string>
+    <string name="capture_photo_delete">Delete photo</string>
     <string name="capture_photo_button">Photo</string>
     <string name="capture_analyze_button">Analyze room</string>
     <string name="capture_sheet_which_photo">Which photo?</string>
@@ -166,6 +170,9 @@
     <string name="confirm_increase_quantity">One more: %1$s</string>
     <string name="confirm_add_task">Add a task we missed</string>
     <string name="confirm_add_task_title">Add a task</string>
+    <string name="confirm_custom_task_title">Type your own task</string>
+    <string name="confirm_custom_task_name">Task name</string>
+    <string name="confirm_custom_task_minutes">Minutes</string>
     <string name="confirm_no_more_tasks">Every task is already on the list.</string>
     <string name="confirm_estimate_label">Est. time and pay</string>
     <string name="confirm_save_room">Save room</string>

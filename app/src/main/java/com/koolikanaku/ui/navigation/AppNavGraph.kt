@@ -2,6 +2,11 @@ package com.koolikanaku.ui.navigation
 
 import kotlinx.coroutines.launch
 import com.koolikanaku.ui.screens.BeforeAfterUi
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInHorizontally
+import androidx.compose.animation.slideOutHorizontally
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.res.stringResource
 import com.koolikanaku.R
@@ -76,7 +81,14 @@ fun AppNavGraph(
     val storageContext = LocalContext.current
     remember(vm) { vm.attachStorage(storageContext) }   // restore a saved job before any screen reads state
 
-    NavHost(navController = navController, startDestination = Routes.SETUP) {
+    NavHost(
+        navController = navController,
+        startDestination = Routes.SETUP,
+        enterTransition = { slideInHorizontally(tween(260)) { it / 4 } + fadeIn(tween(260)) },
+        exitTransition = { fadeOut(tween(180)) },
+        popEnterTransition = { fadeIn(tween(220)) },
+        popExitTransition = { slideOutHorizontally(tween(260)) { it / 4 } + fadeOut(tween(260)) }
+    ) {
 
         composable(Routes.SETUP) {
             SetupScreen(
@@ -208,10 +220,10 @@ fun AppNavGraph(
                 return@composable
             }
 
-            val widePhotoUris = room.photos.filter { it.role == PhotoRole.WIDE }.map { it.uri }
-            val toughPhotoUris = room.photos.filter { it.role == PhotoRole.TOUGHEST }.map { it.uri }
-            val wideCount = widePhotoUris.size
-            val toughCount = toughPhotoUris.size
+            val widePhotoList = room.photos.filter { it.role == PhotoRole.WIDE }
+            val toughPhotoList = room.photos.filter { it.role == PhotoRole.TOUGHEST }
+            val wideCount = widePhotoList.size
+            val toughCount = toughPhotoList.size
             val lengthTaken = room.photos.any { it.role == PhotoRole.MEASURE_LENGTH }
             val widthTaken = room.photos.any { it.role == PhotoRole.MEASURE_WIDTH }
             val sizeStepDone = when (vm.sizeMethod) {
@@ -273,10 +285,11 @@ fun AppNavGraph(
                 presetIndex = vm.presetIndex,
                 presetLabels = vm.presetOptions.map { it.labelEn to it.labelEn },
                 onPresetChange = vm::changePresetIndex,
-                widePhotos = widePhotoUris,
-                toughPhotos = toughPhotoUris,
-                canAddWide = wideCount < 4,
-                canAddTough = toughCount < 4,
+                widePhotos = widePhotoList,
+                toughPhotos = toughPhotoList,
+                onDeletePhoto = { photoId -> vm.removePhoto(roomId, photoId) },
+                canAddWide = true,
+                canAddTough = true,
                 readyToAnalyze = readyToAnalyze,
                 statusText = if (readyToAnalyze) "Ready to analyze" else "Finish the steps above to continue",
                 activeCaptureTarget = null,
@@ -332,8 +345,10 @@ fun AppNavGraph(
                 isDone = stageIndex >= stageLabels.lastIndex,
                 errorText = vm.analysisError,
                 onReviewRoom = {
+                    // Only drop the Analyzing screen itself; keep Room Capture on the stack so the
+                    // back button from Confirm can return there to retake photos or change the size.
                     navController.navigate(Routes.roomConfirm(roomId)) {
-                        popUpTo(Routes.roomCapture(roomId)) { inclusive = true }
+                        popUpTo(Routes.analyzing(roomId)) { inclusive = true }
                     }
                 }
             )
@@ -433,6 +448,7 @@ fun AppNavGraph(
                 onSelectAll = { vm.selectAllTasks(roomId, it) },
                 availableCatalog = availableCatalog,
                 onAddCatalogTask = { vm.addCatalogTask(roomId, it.key) },
+                onAddCustomTask = { name, minutes -> vm.addCustomTask(roomId, name, minutes) },
                 countRows = emptyList(),
                 estimateHoursText = "${formatHours(quote.expectedMinutes.low)}-${formatHours(quote.expectedMinutes.high)} hr",
                 estimatePayText = "₹${quote.priceInr.low.toInt()}-₹${quote.priceInr.high.toInt()}",
@@ -497,10 +513,32 @@ fun AppNavGraph(
                     aiSaidText = room.stain?.severity?.name?.lowercase() ?: "manual",
                     clutterLabel = room.clutter.name,
                     clutterMultText = "x${com.koolikanaku.domain.Constants.CLUTTER_MULTIPLIER[room.clutter]}",
-                    mathRows = listOfNotNull(
-                        roomQuote?.let { BillMathRowUi("Standard minutes", "${it.standardMinutes.low.toInt()}-${it.standardMinutes.high.toInt()}") },
-                        roomQuote?.let { BillMathRowUi("Price", "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}", emphasized = true) }
-                    )
+                    mathRows = run {
+                        val areaSqFt = room.dimensions?.computedAreaSqFt ?: 0.0
+                        val minutesPerSqFt = com.koolikanaku.domain.Constants.MINUTES_PER_SQ_FT[room.roomType] ?: 0.25
+                        val baseFloorMinutes = areaSqFt * minutesPerSqFt
+                        val selectedTasks = room.tasks.filter { it.isSelected && it.quantity > 0 }
+                        val taskMinutes = selectedTasks.sumOf { it.quantity * it.minutesPerUnit }
+                        val mClutter = com.koolikanaku.domain.Constants.CLUTTER_MULTIPLIER[room.clutter] ?: 1.0
+                        val effectiveSeverity = room.severityOverride ?: room.stain?.severity ?: SeverityLevel.LIGHT
+                        val mGrime = com.koolikanaku.domain.Constants.GRIME_MULTIPLIER[effectiveSeverity] ?: 1.0
+                        val mCond = 1.0 + (mClutter - 1.0) + (mGrime - 1.0)
+                        val materialsInr = selectedTasks.sumOf { it.quantity * it.materialCostInr }
+                        val spreadPct = room.dimensions?.source?.let { com.koolikanaku.domain.Constants.SPREAD_BY_SOURCE[it] }?.times(100)?.toInt() ?: 25
+                        listOfNotNull(
+                            BillMathRowUi("Room size", "${areaSqFt.toInt()} sq ft × $minutesPerSqFt min/sq ft"),
+                            BillMathRowUi("Base floor minutes", "${baseFloorMinutes.toInt()} min"),
+                            BillMathRowUi("Selected task minutes", "$taskMinutes min (${selectedTasks.size} task(s))"),
+                            BillMathRowUi("Clutter multiplier", "x$mClutter (${room.clutter.name.lowercase()})"),
+                            BillMathRowUi("Grime multiplier", "x$mGrime (${effectiveSeverity.name.lowercase()})"),
+                            BillMathRowUi("Combined condition multiplier", "x${"%.2f".format(mCond)}"),
+                            roomQuote?.let { BillMathRowUi("Standard minutes", "${it.standardMinutes.low.toInt()}-${it.standardMinutes.high.toInt()} (±$spreadPct%)") },
+                            roomQuote?.let { BillMathRowUi("Expected minutes (your pace)", "${it.expectedMinutes.low.toInt()}-${it.expectedMinutes.high.toInt()}") },
+                            if (materialsInr > 0) BillMathRowUi("Materials", "₹${materialsInr.toInt()}") else null,
+                            BillMathRowUi("Hourly rate", "₹${job.hourlyRateInr.toInt()}/hr"),
+                            roomQuote?.let { BillMathRowUi("Price", "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}", emphasized = true) }
+                        )
+                    }
                 )
             }
 
