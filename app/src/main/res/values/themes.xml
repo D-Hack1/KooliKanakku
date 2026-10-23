@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Compose draws the entire UI; this only removes the native ActionBar so the
+         app doesn't show two titles (system "KooliKanaku" bar + the in-app header). -->
+    <style name="Theme.KooliKanaku" parent="android:Theme.Material.Light.NoActionBar" />
+</resources>

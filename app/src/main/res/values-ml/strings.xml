@@ -10,6 +10,8 @@
     <string name="offline_badge">ഓഫ്‌ലൈൻ</string>
     <string name="language_english">English</string>
     <string name="language_malayalam">മലയാളം</string>
+    <string name="setup_dark_mode">ഡാർക്ക് മോഡിലേക്ക് മാറുക</string>
+    <string name="setup_light_mode">ലൈറ്റ് മോഡിലേക്ക് മാറുക</string>
 
     <!-- Shared enums -->
     <string name="room_type_kitchen">അടുക്കള</string>
@@ -224,6 +226,7 @@
     <string name="bill_evidence_note">പൂർണ്ണ ഹാഷിനും സമയത്തിനും ഫോട്ടോയിൽ തൊടുക.</string>
     <string name="bill_hash_of">സേവ് ചെയ്ത ഫയലിന്റെ SHA-256</string>
     <string name="bill_taken_label">എടുത്തത്</string>
+    <string name="bill_open_photo">ഫോട്ടോ തുറക്കുക</string>
     <string name="bill_disclaimer">എസ്റ്റിമേറ്റ് ഈ ഫോണിൽ തന്നെ കണക്കാക്കിയത്. ഹാഷുകൾ ഒറിജിനൽ ഫോട്ടോകളുടേതാണ്. മാറ്റം തിരിച്ചറിയാം, പക്ഷേ തടയാനാവില്ല: ഫോണിന്റെ ക്ലോക്ക് മാറ്റാൻ കഴിയും.</string>
     <string name="bill_export_pdf">PDF എടുക്കുക</string>
     <string name="bill_share">പങ്കിടുക</string>

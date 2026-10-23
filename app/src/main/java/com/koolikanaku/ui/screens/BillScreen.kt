@@ -3,6 +3,7 @@ package com.koolikanaku.ui.screens
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.statusBarsPadding
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -51,6 +52,9 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
 import com.koolikanaku.ui.components.HashBadge
+import com.koolikanaku.ui.components.PhotoImage
+import com.koolikanaku.ui.components.openPhotoExternally
+import androidx.compose.ui.platform.LocalContext
 
 data class BillMathRowUi(val label: String, val value: String, val emphasized: Boolean = false)
 data class BillTaskUi(val label: String, val qty: Int, val minutesText: String, val sourceLabel: String)
@@ -68,7 +72,7 @@ data class BillRoomUi(
     val clutterMultText: String,
     val mathRows: List<BillMathRowUi>
 )
-data class BillPhotoUi(val label: String, val hashShort: String, val fullHash: String, val timeText: String)
+data class BillPhotoUi(val label: String, val hashShort: String, val fullHash: String, val timeText: String, val uri: android.net.Uri? = null)
 data class BillPhotoGroupUi(val title: String, val photos: List<BillPhotoUi>)
 
 /**
@@ -102,7 +106,7 @@ fun BillScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            Row(modifier = Modifier.padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
+            Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
                 IconButton(onClick = onBack) {
                     Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
                 }
@@ -242,9 +246,7 @@ fun BillScreen(
                                                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
                                                 modifier = Modifier.fillMaxWidth().aspectRatio(1f)
                                             ) {
-                                                Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                                                    Icon(Icons.Outlined.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                                                }
+                                                PhotoImage(uri = photo.uri, modifier = Modifier.fillMaxSize())
                                             }
                                             Text(photo.label, style = MaterialTheme.typography.labelMedium)
                                             HashBadge(photo.hashShort)
@@ -264,17 +266,19 @@ fun BillScreen(
     }
 
     selectedPhoto?.let { photo ->
+        val sheetContext = LocalContext.current
         ModalBottomSheet(onDismissRequest = { selectedPhoto = null }, sheetState = rememberModalBottomSheetState()) {
             Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 Surface(
                     shape = RoundedCornerShape(14.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
                     border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
-                    modifier = Modifier.fillMaxWidth().aspectRatio(358f / 240f)
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .aspectRatio(358f / 240f)
+                        .let { m -> if (photo.uri != null) m.clickable { openPhotoExternally(sheetContext, photo.uri) } else m }
                 ) {
-                    Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-                        Icon(Icons.Outlined.Image, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
-                    }
+                    PhotoImage(uri = photo.uri, modifier = Modifier.fillMaxSize(), cornerRadiusDp = 14)
                 }
                 Text(photo.label, style = MaterialTheme.typography.headlineSmall)
                 Text(stringResource(R.string.bill_hash_of), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -288,6 +292,11 @@ fun BillScreen(
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text(stringResource(R.string.bill_taken_label), color = MaterialTheme.colorScheme.onSurfaceVariant)
                     Text(photo.timeText)
+                }
+                if (photo.uri != null) {
+                    Button(onClick = { openPhotoExternally(sheetContext, photo.uri) }, modifier = Modifier.fillMaxWidth()) {
+                        Text(stringResource(R.string.bill_open_photo))
+                    }
                 }
                 OutlinedButton(onClick = { selectedPhoto = null }, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.common_done))
