@@ -38,6 +38,21 @@ class EndToEndTest {
         vm.addPhoto(roomId, PhotoStore.processCapturedFile(context, file, role, depressionDeg, holdHeightM))
     }
 
+    @Test fun finishIsBlockedUntilEveryRoomHasASize() {
+        val vm = AppViewModel()
+        vm.startJob()
+        assertEquals("no rooms", false, vm.finishJob())
+        val id = vm.addRoom()
+        assertEquals("room without size", false, vm.allRoomsHaveSize())
+        assertEquals(false, vm.finishJob())
+        assertEquals(null, vm.quote)
+        vm.setManualSizeSqFt(id, 0.0)
+        assertEquals("zero size is not a size", false, vm.finishJob())
+        vm.setManualSizeSqFt(id, 120.0)
+        assertEquals(true, vm.finishJob())
+        assertTrue(vm.quote!!.totalPriceInr.low > 0)
+    }
+
     @Test fun measureShotsAndSeveralCloseUps(): Unit = runBlocking {
         assumeTrue("Missing test photos", File(photoDir, "bathroom.jpg").exists() && File(photoDir, "kitchen.jpg").exists())
         val vm = AppViewModel()

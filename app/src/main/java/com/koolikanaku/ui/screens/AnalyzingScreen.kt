@@ -42,6 +42,7 @@ fun AnalyzingScreen(
     stages: List<AnalysisStageUi>,
     isDone: Boolean,
     onReviewRoom: () -> Unit,
+    errorText: String? = null,
     modifier: Modifier = Modifier
 ) {
     Scaffold(modifier = modifier) { padding ->
@@ -110,6 +111,14 @@ fun AnalyzingScreen(
                     stringResource(R.string.analyzing_privacy_note),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (errorText != null) {
+                Text(
+                    stringResource(R.string.analyzing_problem, errorText),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
                 )
             }
 

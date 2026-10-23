@@ -105,6 +105,8 @@ fun RoomConfirmScreen(
     onSizeChange: (String) -> Unit,
     sizeSourceLabel: String,
     dimsNote: String?,
+    sizeProblem: String? = null,
+    canSave: Boolean = true,
     severity: SeverityLevel,
     severityOverridden: Boolean,
     suggestedSeverityLabel: String,
@@ -163,7 +165,7 @@ fun RoomConfirmScreen(
                             Text(mathLine2, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Button(onClick = onSaveRoom, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Button(onClick = onSaveRoom, enabled = canSave, modifier = Modifier.fillMaxWidth().height(54.dp)) {
                         Text(stringResource(R.string.confirm_save_room), style = MaterialTheme.typography.titleLarge)
                     }
                 }
@@ -294,6 +296,9 @@ fun RoomConfirmScreen(
                         ) {
                             Text(sizeSourceLabel, style = MaterialTheme.typography.labelMedium, modifier = Modifier.padding(horizontal = 10.dp, vertical = 5.dp))
                         }
+                    }
+                    if (sizeProblem != null) {
+                        Text(sizeProblem, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
                     }
                     if (dimsNote != null) {
                         Text(dimsNote, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)

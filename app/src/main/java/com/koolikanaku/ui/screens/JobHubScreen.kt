@@ -54,6 +54,7 @@ fun JobHubScreen(
     onAddRoom: () -> Unit,
     onRoomClick: (String) -> Unit,
     onFinish: () -> Unit,
+    canFinish: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val hasRooms = rooms.isNotEmpty()
@@ -67,9 +68,12 @@ fun JobHubScreen(
                         Text(stringResource(R.string.jobhub_total_label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(totalText, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
+                    if (hasRooms && !canFinish) {
+                        Text(stringResource(R.string.jobhub_finish_blocked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
                     Button(
                         onClick = onFinish,
-                        enabled = hasRooms,
+                        enabled = hasRooms && canFinish,
                         modifier = Modifier.fillMaxWidth().height(54.dp)
                     ) {
                         Text(stringResource(R.string.jobhub_finish_button), style = MaterialTheme.typography.titleLarge)

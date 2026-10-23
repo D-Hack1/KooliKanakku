@@ -1,6 +1,8 @@
 package com.koolikanaku.ui.navigation
 
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.res.stringResource
+import com.koolikanaku.R
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -121,9 +123,9 @@ fun AppNavGraph(
                     vm.selectRoom(roomId)
                     navController.navigate(Routes.roomCapture(roomId))
                 },
+                canFinish = vm.allRoomsHaveSize(),
                 onFinish = {
-                    vm.finishJob()
-                    navController.navigate(Routes.BILL)
+                    if (vm.finishJob()) navController.navigate(Routes.BILL)
                 }
             )
         }
@@ -147,6 +149,7 @@ fun AppNavGraph(
                 onError = { vm.onCaptureError(it) }
             )
             var liveMeasureTarget by remember { mutableStateOf<CaptureTarget?>(null) }
+            var confirmReanalyze by remember { mutableStateOf(false) }
 
             fun launchFor(target: CaptureTarget) {
                 when (target) {
@@ -207,6 +210,26 @@ fun AppNavGraph(
             }
             val readyToAnalyze = sizeStepDone && wideCount >= 1 && toughCount >= 1
 
+            if (confirmReanalyze) {
+                androidx.compose.material3.AlertDialog(
+                    onDismissRequest = { confirmReanalyze = false },
+                    title = { androidx.compose.material3.Text(stringResource(R.string.reanalyze_title)) },
+                    text = { androidx.compose.material3.Text(stringResource(R.string.reanalyze_body)) },
+                    confirmButton = {
+                        androidx.compose.material3.TextButton(onClick = {
+                            confirmReanalyze = false
+                            vm.goToRoomConfirmFromCapture(roomId)
+                            navController.navigate(Routes.analyzing(roomId))
+                        }) { androidx.compose.material3.Text(stringResource(R.string.reanalyze_confirm)) }
+                    },
+                    dismissButton = {
+                        androidx.compose.material3.TextButton(onClick = { confirmReanalyze = false }) {
+                            androidx.compose.material3.Text(stringResource(R.string.reanalyze_cancel))
+                        }
+                    }
+                )
+            }
+
             RoomCaptureScreen(
                 roomNumber = (vm.job?.rooms?.indexOfFirst { it.id == roomId } ?: 0) + 1,
                 sizeMethod = vm.sizeMethod,
@@ -256,8 +279,11 @@ fun AppNavGraph(
                 onCloseCamera = { },
                 onShutter = { },
                 onAnalyzeRoom = {
-                    vm.goToRoomConfirmFromCapture(roomId)
-                    navController.navigate(Routes.analyzing(roomId))
+                    if (room.tasks.any { it.isSelected }) confirmReanalyze = true
+                    else {
+                        vm.goToRoomConfirmFromCapture(roomId)
+                        navController.navigate(Routes.analyzing(roomId))
+                    }
                 },
                 onBack = { navController.popBackStack() }
             )
@@ -285,6 +311,7 @@ fun AppNavGraph(
                     AnalysisStageUi(label = label, done = i < stageIndex, current = i == stageIndex, durationText = "")
                 },
                 isDone = stageIndex >= stageLabels.lastIndex,
+                errorText = vm.analysisError,
                 onReviewRoom = {
                     navController.navigate(Routes.roomConfirm(roomId)) {
                         popUpTo(Routes.roomCapture(roomId)) { inclusive = true }
@@ -356,6 +383,13 @@ fun AppNavGraph(
                 },
                 sizeSourceLabel = room.dimensions?.source?.name ?: "MANUAL",
                 dimsNote = null,
+                sizeProblem = when {
+                    (room.dimensions?.computedAreaSqFt ?: 0.0) <= 0.0 -> stringResource(R.string.confirm_size_required)
+                    room.dimensions!!.computedAreaSqFt < com.koolikanaku.domain.Constants.MIN_PLAUSIBLE_AREA_SQ_FT ||
+                        room.dimensions!!.computedAreaSqFt > com.koolikanaku.domain.Constants.MAX_PLAUSIBLE_AREA_SQ_FT -> stringResource(R.string.confirm_size_implausible)
+                    else -> null
+                },
+                canSave = (room.dimensions?.computedAreaSqFt ?: 0.0) > 0.0,
                 severity = room.severityOverride ?: room.stain?.severity ?: SeverityLevel.LIGHT,
                 severityOverridden = room.severityOverride != null,
                 suggestedSeverityLabel = room.stain?.severity?.name?.lowercase() ?: "N/A",

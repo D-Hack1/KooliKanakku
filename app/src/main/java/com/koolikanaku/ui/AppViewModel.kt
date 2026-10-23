@@ -8,6 +8,7 @@ import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
 import com.koolikanaku.ai.analyzeStain
 import com.koolikanaku.ai.detectObjects
+import com.koolikanaku.ai.initDetector
 import com.koolikanaku.ai.measureRoom
 import com.koolikanaku.capture.PhotoStore
 import com.koolikanaku.domain.AnalyzeRoom
@@ -199,9 +200,23 @@ class AppViewModel : ViewModel() {
         analysisError = null
         val scores = mutableMapOf<String, StainResult>()
         val appContext = context.applicationContext
+        val detectorReady = initDetector(appContext)   // retries if the launch-time load failed
+        var detectionProblem: String? = null
         val useCase = AnalyzeRoom(
             loadBitmap = { photo -> withContext(Dispatchers.IO) { PhotoStore.getDownscaledBitmap(appContext, photo.uri) } },
-            detectObjectsFn = ::detectObjects,
+            // A detector failure must not lose grime or measurement results: fall back to no detections.
+            detectObjectsFn = { bitmap ->
+                if (!detectorReady) {
+                    detectionProblem = "the object detector could not be loaded"
+                    emptyList()
+                } else try {
+                    detectObjects(bitmap)
+                } catch (e: Exception) {
+                    Log.e("AppViewModel", "Detection failed", e)
+                    detectionProblem = "object detection failed (${e.message ?: e.javaClass.simpleName})"
+                    emptyList()
+                }
+            },
             analyzeStainFn = ::analyzeStain,
             measureRoomFn = ::measureRoom,
             dummyFallback = false,
@@ -215,6 +230,7 @@ class AppViewModel : ViewModel() {
                 val type = if (current.roomType == RoomType.OTHER) analyzed.suggestedRoomType ?: current.roomType else current.roomType
                 analyzed.copy(roomType = type, dimensions = analyzed.dimensions ?: current.dimensions)
             }
+            analysisError = detectionProblem
         } catch (e: Exception) {
             Log.e("AppViewModel", "Room analysis failed", e)
             analysisError = e.message ?: e.javaClass.simpleName
@@ -293,9 +309,18 @@ class AppViewModel : ViewModel() {
         currentRoomId = null
     }
 
-    fun finishJob() {
-        val currentJob = job ?: return
+    /** True when every room has a usable size. A room without one would be billed for tasks only. */
+    fun allRoomsHaveSize(): Boolean {
+        val rooms = job?.rooms ?: return false
+        return rooms.isNotEmpty() && rooms.all { (it.dimensions?.computedAreaSqFt ?: 0.0) > 0.0 }
+    }
+
+    /** Returns false (and computes nothing) while any room is missing its size. */
+    fun finishJob(): Boolean {
+        val currentJob = job ?: return false
+        if (!allRoomsHaveSize()) return false
         quote = PricingEngine.quoteJob(currentJob)
+        return true
     }
 
     private fun nowIso(): String {
