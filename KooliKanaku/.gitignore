@@ -1,0 +1,48 @@
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# Local config (machine-specific paths and SDK location)
+local.properties
+
+# Android Studio / IntelliJ
+.idea/
+*.iml
+captures/
+.externalNativeBuild/
+.cxx/
+
+# Build outputs (share APKs over Drive/WhatsApp, not git)
+*.apk
+*.aab
+*.ap_
+*.dex
+
+# Signing keys
+*.jks
+*.keystore
+
+# Model export leftovers (Ultralytics creates these next to the final .tflite)
+*.pt
+*.onnx
+*_saved_model/
+*_float16.tflite
+*_int8.tflite
+*_integer_quant.tflite
+runs/
+.venv/
+venv/
+__pycache__/
+
+# OS junk
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+
+plan.md
+worksplit.md
+1.md
+
