@@ -43,6 +43,7 @@ Thumbs.db
 # Logs
 *.log
 
+#work distribution and plan files
 plan.md
 worksplit.md
 1.md
