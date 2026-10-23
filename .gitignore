@@ -48,3 +48,6 @@ worksplit.md
 1.md
 labels.txt
 KooliKanaku App.html
+# The bundled detector and its labels must be shared with the team
+!app/src/main/assets/detector.tflite
+!app/src/main/assets/labels.txt

@@ -248,13 +248,14 @@ fun AppNavGraph(
         ) { backStackEntry ->
             val roomId = backStackEntry.arguments?.getString("roomId") ?: return@composable
             var stageIndex by remember { mutableStateOf(0) }
-            val stageLabels = listOf("Merging photos", "Building checklist", "Ready")
+            val stageLabels = listOf("Detecting objects and grime", "Building checklist", "Ready")
+            val analyzeContext = LocalContext.current
 
             LaunchedEffect(roomId) {
                 stageIndex = 0
-                delay(300)
+                vm.analyzeRoom(analyzeContext, roomId)
                 stageIndex = 1
-                delay(300)
+                delay(200)
                 stageIndex = 2
             }
 
@@ -281,6 +282,8 @@ fun AppNavGraph(
             var photoTab by remember { mutableStateOf(ConfirmPhotoTab.WIDE) }
             var sizeText by remember(roomId) { mutableStateOf(room.dimensions?.computedAreaSqFt?.toInt()?.toString() ?: "") }
 
+            val wideAnalysis = room.photos.firstOrNull { it.role == PhotoRole.WIDE }
+                ?.let { wide -> room.photoAnalyses.find { it.photoId == wide.id } }
             val quote = PricingEngine.quoteRoom(room, job)
             val availableCatalog = com.koolikanaku.domain.TaskCatalog.ITEMS.values
                 .filter { item -> room.tasks.none { it.catalogKey == item.key } }
@@ -290,12 +293,13 @@ fun AppNavGraph(
                 roomNumber = (job.rooms.indexOfFirst { it.id == roomId }) + 1,
                 photoTab = photoTab,
                 onPhotoTabChange = { photoTab = it },
-                wideDetections = emptyList(),
-                wideImageWidth = 0,
-                wideImageHeight = 0,
-                toughSummaryText = "${room.toughPhotoCount()} close-up photo(s). No automatic grime score - set severity below.",
+                wideDetections = wideAnalysis?.detections.orEmpty(),
+                wideImageWidth = wideAnalysis?.imageWidth ?: 0,
+                wideImageHeight = wideAnalysis?.imageHeight ?: 0,
+                toughSummaryText = room.stain?.let { "${room.toughPhotoCount()} close-up photo(s). Suggested grime: ${it.severity.name.lowercase()} (score ${it.score.toInt()})" }
+                    ?: "${room.toughPhotoCount()} close-up photo(s). No automatic grime score - set severity below.",
                 roomType = room.roomType,
-                suggestedRoomType = null,
+                suggestedRoomType = room.suggestedRoomType,
                 onRoomTypeChange = { vm.setRoomType(roomId, it) },
                 sizeSqFt = sizeText,
                 onSizeChange = { value ->
@@ -304,13 +308,13 @@ fun AppNavGraph(
                 },
                 sizeSourceLabel = room.dimensions?.source?.name ?: "MANUAL",
                 dimsNote = null,
-                severity = room.severityOverride ?: SeverityLevel.LIGHT,
+                severity = room.severityOverride ?: room.stain?.severity ?: SeverityLevel.LIGHT,
                 severityOverridden = room.severityOverride != null,
-                suggestedSeverityLabel = "N/A",
+                suggestedSeverityLabel = room.stain?.severity?.name?.lowercase() ?: "N/A",
                 onSeverityChange = { vm.overrideSeverity(roomId, it) },
                 severityMultiplier = { level -> com.koolikanaku.domain.Constants.GRIME_MULTIPLIER[level] ?: 1.0 },
                 clutterLevel = room.clutter,
-                looseItemCount = 0,
+                looseItemCount = room.photoAnalyses.maxOfOrNull { a -> a.detections.count { com.koolikanaku.domain.ClutterRules.isClutterLabel(it.label) } } ?: 0,
                 tasks = room.tasks,
                 language = vm.language,
                 allSelected = room.tasks.isNotEmpty() && room.tasks.all { it.isSelected },

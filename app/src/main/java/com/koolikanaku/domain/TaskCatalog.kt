@@ -57,7 +57,15 @@ object TaskCatalog {
         "bidet" to "sink"
     )
 
-    val TASK_LABELS: Set<String> = (ITEMS.keys + SYNONYMS.keys).toSet()
+    /**
+     * Labels the bundled detector (COCO yolov8n, see assets/labels.txt) can emit that become checklist rows.
+     * Catalog keys with no COCO equivalent (gas stove, countertop, shower...) are still offered as
+     * TEMPLATE tasks and via "+ Add task"; they are just never DETECTED.
+     */
+    val TASK_LABELS: Set<String> = setOf(
+        "toilet", "sink", "oven", "microwave", "refrigerator",
+        "bed", "couch", "chair", "dining table", "tv"
+    )
 
     fun resolveCatalogKey(rawLabel: String): String? {
         val cleaned = rawLabel.trim().lowercase()

@@ -1,9 +1,16 @@
 package com.koolikanaku.ui
 
+import android.content.Context
+import android.util.Log
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
 import androidx.lifecycle.ViewModel
+import com.koolikanaku.ai.analyzeStain
+import com.koolikanaku.ai.detectObjects
+import com.koolikanaku.ai.measureRoom
+import com.koolikanaku.capture.PhotoStore
+import com.koolikanaku.domain.AnalyzeRoom
 import com.koolikanaku.domain.AppMode
 import com.koolikanaku.domain.CleaningTask
 import com.koolikanaku.domain.ClutterLevel
@@ -23,6 +30,8 @@ import com.koolikanaku.domain.SizeSource
 import com.koolikanaku.domain.TaskCatalog
 import com.koolikanaku.domain.TaskMapper
 import com.koolikanaku.domain.TaskSource
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.text.SimpleDateFormat
 import java.util.Date
 import java.util.Locale
@@ -30,10 +39,9 @@ import java.util.TimeZone
 import java.util.UUID
 
 /**
- * Drives the real screens without Nived's AI pipeline: no detection, no grime scoring,
- * no gravity-sensor measurement. Sizes come from manual entry / presets, tasks start as
- * the room-type template (TaskMapper with an empty merged-count map), and severity/clutter
- * are set by hand. Everything else (domain models, pricing, capture, PDF export) is real.
+ * Drives the real screens. [analyzeRoom] runs the on-device pipeline (YOLO detection, grime
+ * statistics, and camera measurement when the measure shots carry sensor angles); until it
+ * has run, tasks are the room-type template (TaskMapper with an empty merged-count map).
  */
 class AppViewModel : ViewModel() {
 
@@ -73,6 +81,8 @@ class AppViewModel : ViewModel() {
     var presetIndex by mutableStateOf<Int?>(null)
         private set
     var captureError by mutableStateOf<String?>(null)
+        private set
+    var analysisError by mutableStateOf<String?>(null)
         private set
 
     val presetOptions = listOf(SizePreset.SMALL, SizePreset.MEDIUM, SizePreset.LARGE)
@@ -165,6 +175,33 @@ class AppViewModel : ViewModel() {
                 existingTasks = withDims.tasks
             )
             withDims.copy(tasks = tasks)
+        }
+    }
+
+    /**
+     * Runs the on-device analysis for a room (detection, grime, measurement, merge, tasks).
+     * On failure the room keeps its template tasks and the error is kept in [analysisError].
+     */
+    suspend fun analyzeRoom(context: Context, roomId: String) {
+        val room = job?.rooms?.find { it.id == roomId } ?: return
+        analysisError = null
+        val appContext = context.applicationContext
+        val useCase = AnalyzeRoom(
+            loadBitmap = { photo -> withContext(Dispatchers.IO) { PhotoStore.getDownscaledBitmap(appContext, photo.uri) } },
+            detectObjectsFn = ::detectObjects,
+            analyzeStainFn = ::analyzeStain,
+            measureRoomFn = ::measureRoom
+        )
+        try {
+            val analyzed = useCase(room)
+            updateRoom(roomId) { current ->
+                // Keep what the user entered while analysis ran; adopt the suggested type only if none was chosen.
+                val type = if (current.roomType == RoomType.OTHER) analyzed.suggestedRoomType ?: current.roomType else current.roomType
+                analyzed.copy(roomType = type, dimensions = analyzed.dimensions ?: current.dimensions)
+            }
+        } catch (e: Exception) {
+            Log.e("AppViewModel", "Room analysis failed", e)
+            analysisError = e.message ?: e.javaClass.simpleName
         }
     }
 
