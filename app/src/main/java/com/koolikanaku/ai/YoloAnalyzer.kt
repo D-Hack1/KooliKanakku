@@ -12,6 +12,10 @@ const val CONFIDENCE_THRESHOLD = 0.30f
 const val NMS_IOU_THRESHOLD = 0.50f
 /** The Open Images model scores lower than COCO for the same object, so it gets a lower bar. */
 const val SECONDARY_CONFIDENCE_THRESHOLD = 0.20f
+/** Clutter-specific confidence threshold: allow loose clutter items to trigger down to 0.16. */
+const val CLUTTER_CONFIDENCE_THRESHOLD = 0.16f
+/** Lower parsing threshold to capture and log all raw detections for debugging/analysis. */
+const val RAW_LOG_THRESHOLD = 0.10f
 
 /** Call once (e.g. from MainActivity.onCreate) before the first [detectObjects]. Returns false if the main model failed. */
 fun initDetector(context: Context): Boolean = try {

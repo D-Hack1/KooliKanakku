@@ -26,7 +26,16 @@ object ClutterRules {
         "toy",
         "towel",
         "plastic bag",
-        "tin can"
+        "tin can",
+        "clothing",
+        "box",
+        "container",
+        "pillow",
+        "kitchen utensil",
+        "waste container",
+        "paper towel",
+        "toilet paper",
+        "luggage and bags"
     )
 
     fun isClutterLabel(label: String): Boolean = label.trim().lowercase() in CLUTTER_LABELS

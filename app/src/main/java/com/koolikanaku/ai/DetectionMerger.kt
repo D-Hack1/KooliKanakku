@@ -14,7 +14,9 @@ object DetectionMerger {
 
     /** Small loose items only the secondary model knows (they feed the clutter count). */
     val SECONDARY_CLUTTER: Set<String> = setOf(
-        "mug", "plate", "footwear", "toy", "towel", "plastic bag", "tin can"
+        "mug", "plate", "footwear", "toy", "towel", "plastic bag", "tin can",
+        "clothing", "box", "container", "pillow", "kitchen utensil",
+        "waste container", "paper towel", "toilet paper", "luggage and bags"
     )
 
     /** One long cabinet run or counter is seen as several boxes; checklist quantity should stay 1. */

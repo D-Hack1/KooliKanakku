@@ -11,6 +11,8 @@ import java.nio.channels.FileChannel
 import java.util.concurrent.Executors
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.TimeoutException
+import com.koolikanaku.domain.ClutterRules
+import java.util.Locale
 
 /** One detection with edges normalized to 0..1 of the analyzed image, so models can be merged before scaling. */
 data class Labeled(
@@ -63,19 +65,42 @@ class YoloModel(
     fun detect(bitmap: Bitmap): List<Labeled> {
         val interp = checkNotNull(interpreter) { "$modelAsset was not loaded" }
         val input = preprocess(bitmap)
-        val candidates = try {
+        val rawCandidates = try {
             inferenceExecutor.submit<List<YoloPostProcessor.Candidate>> {
                 // One lock covers run + parse: the output buffer is reused by the next call.
                 synchronized(this) {
                     interp.run(input, raw)
-                    YoloPostProcessor.parse(raw[0], featuresFirst, numFeatures, numAnchors, confidenceThreshold)
+                    YoloPostProcessor.parse(raw[0], featuresFirst, numFeatures, numAnchors, RAW_LOG_THRESHOLD)
                 }
             }.get(INFERENCE_TIMEOUT_SECONDS, TimeUnit.SECONDS)
         } catch (e: TimeoutException) {
             Log.e("YoloModel", "$modelAsset timed out after ${INFERENCE_TIMEOUT_SECONDS}s; skipping this photo")
             return emptyList()
         }
-        return YoloPostProcessor.nms(candidates, NMS_IOU_THRESHOLD).mapNotNull { c ->
+
+        // Temporarily log all raw detections above 0.10 confidence
+        for (c in rawCandidates) {
+            val label = labels.getOrNull(c.classIndex) ?: "unknown"
+            Log.d(
+                "YoloRaw",
+                "[$modelAsset RAW > $RAW_LOG_THRESHOLD] '$label' conf=${String.format(Locale.US, "%.3f", c.confidence)} box=[${String.format(Locale.US, "%.2f", c.left)}, ${String.format(Locale.US, "%.2f", c.top)}, ${String.format(Locale.US, "%.2f", c.right)}, ${String.format(Locale.US, "%.2f", c.bottom)}]"
+            )
+        }
+
+        // Class-specific confidence filtering:
+        // Fixtures (sink, toilet, bed, etc.) keep confidenceThreshold (0.30+),
+        // while loose clutter items trigger down to CLUTTER_CONFIDENCE_THRESHOLD (0.16).
+        val filteredCandidates = rawCandidates.filter { c ->
+            val label = labels.getOrNull(c.classIndex) ?: return@filter false
+            val minConf = if (ClutterRules.isClutterLabel(label)) {
+                CLUTTER_CONFIDENCE_THRESHOLD
+            } else {
+                confidenceThreshold
+            }
+            c.confidence >= minConf
+        }
+
+        return YoloPostProcessor.nms(filteredCandidates, NMS_IOU_THRESHOLD).mapNotNull { c ->
             val label = labels.getOrNull(c.classIndex) ?: return@mapNotNull null
             Labeled(label, c.confidence, c.left, c.top, c.right, c.bottom)
         }
