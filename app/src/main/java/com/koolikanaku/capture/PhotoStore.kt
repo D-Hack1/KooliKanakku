@@ -128,8 +128,9 @@ object PhotoStore {
         val boundsOptions = BitmapFactory.Options().apply {
             inJustDecodeBounds = true
         }
-        inputStreamSupplier()?.use { BitmapFactory.decodeStream(it, null, boundsOptions) }
-            ?: return null
+        // decodeStream returns null when inJustDecodeBounds is set, so only the options carry the result.
+        val stream = inputStreamSupplier() ?: return null
+        stream.use { BitmapFactory.decodeStream(it, null, boundsOptions) }
 
         val origWidth = boundsOptions.outWidth
         val origHeight = boundsOptions.outHeight

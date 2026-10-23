@@ -9,6 +9,8 @@ class AnalyzeRoom(
     private val analyzeStainFn: suspend (Bitmap) -> StainResult = {
         StainResult(severity = SeverityLevel.MODERATE, score = 42f)
     },
+    /** True only for dummy-data runs; the real app passes false so an unreadable photo never yields fake results. */
+    private val dummyFallback: Boolean = true,
     private val measureRoomFn: (EvidencePhoto, EvidencePhoto) -> MeasureResult = { _, _ ->
         MeasureResult(
             dimensions = Constants.computeDimensions(3.6, 3.0, LengthUnit.METRES, SizeSource.MEASURED),
@@ -33,7 +35,7 @@ class AnalyzeRoom(
             val rawDetections = if (bitmap != null) {
                 detectObjectsFn(bitmap)
             } else {
-                generateDummyDetections(room.roomType)
+                if (dummyFallback) generateDummyDetections(room.roomType) else emptyList()
             }
 
             // CRITICAL ALLOW-LIST FILTER (plan.md Section 4A)
@@ -54,14 +56,16 @@ class AnalyzeRoom(
         val toughestPhotos = room.photos.filter { it.role == PhotoRole.TOUGHEST }
         val worstStain = if (toughestPhotos.isNotEmpty()) {
             val stainComparator = compareBy<StainResult> { it.severity.ordinal }.thenBy { it.score }
-            toughestPhotos.map { photo ->
+            toughestPhotos.mapNotNull { photo ->
                 val bitmap = loadBitmap(photo)
                 if (bitmap != null) {
                     analyzeStainFn(bitmap)
-                } else {
+                } else if (dummyFallback) {
                     StainResult(severity = SeverityLevel.MODERATE, score = 42f)
+                } else {
+                    null
                 }
-            }.maxWithOrNull(stainComparator)
+            }.maxWithOrNull(stainComparator) ?: room.stain
         } else {
             room.stain
         }

@@ -194,7 +194,8 @@ class AppViewModel : ViewModel() {
             loadBitmap = { photo -> withContext(Dispatchers.IO) { PhotoStore.getDownscaledBitmap(appContext, photo.uri) } },
             detectObjectsFn = ::detectObjects,
             analyzeStainFn = ::analyzeStain,
-            measureRoomFn = ::measureRoom
+            measureRoomFn = ::measureRoom,
+            dummyFallback = false
         )
         try {
             val analyzed = useCase(room)
