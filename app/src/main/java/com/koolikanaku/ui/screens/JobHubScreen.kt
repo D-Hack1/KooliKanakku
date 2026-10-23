@@ -25,6 +25,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
@@ -37,7 +38,8 @@ data class RoomSummaryUi(
     val metaLine1: String,
     val metaLine2: String,
     val timeText: String,
-    val payText: String
+    val payText: String,
+    val analyzed: Boolean = true
 )
 
 /**
@@ -54,6 +56,7 @@ fun JobHubScreen(
     onAddRoom: () -> Unit,
     onRoomClick: (String) -> Unit,
     onFinish: () -> Unit,
+    canFinish: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val hasRooms = rooms.isNotEmpty()
@@ -67,9 +70,12 @@ fun JobHubScreen(
                         Text(stringResource(R.string.jobhub_total_label), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         Text(totalText, style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
                     }
+                    if (hasRooms && !canFinish) {
+                        Text(stringResource(R.string.jobhub_finish_blocked), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.error)
+                    }
                     Button(
                         onClick = onFinish,
-                        enabled = hasRooms,
+                        enabled = hasRooms && canFinish,
                         modifier = Modifier.fillMaxWidth().height(54.dp)
                     ) {
                         Text(stringResource(R.string.jobhub_finish_button), style = MaterialTheme.typography.titleLarge)
@@ -85,7 +91,7 @@ fun JobHubScreen(
             ) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
                     Text(stringResource(R.string.jobhub_title), style = MaterialTheme.typography.headlineLarge)
-                    Text(stringResource(R.string.jobhub_rooms_count, rooms.size), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(pluralStringResource(R.plurals.jobhub_rooms_count_plural, rooms.size, rooms.size), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Pill(modeLabel, filled = true)
@@ -129,7 +135,8 @@ fun JobHubScreen(
                             metaLine2 = room.metaLine2,
                             timeText = room.timeText,
                             payText = room.payText,
-                            onClick = { onRoomClick(room.id) }
+                            onClick = { onRoomClick(room.id) },
+                            analyzed = room.analyzed
                         )
                     }
                     item { AddRoomButton(onAddRoom, firstRoom = false, modifier = Modifier.fillMaxWidth()) }

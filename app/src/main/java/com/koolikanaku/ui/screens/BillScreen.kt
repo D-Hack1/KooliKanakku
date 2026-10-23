@@ -23,13 +23,13 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.outlined.ArrowBack
+import androidx.compose.material.icons.automirrored.outlined.ArrowBack
 import androidx.compose.material.icons.outlined.ExpandMore
 import androidx.compose.material.icons.outlined.Image
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material.icons.outlined.Share
 import androidx.compose.material3.Button
-import androidx.compose.material3.Divider
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +74,14 @@ data class BillRoomUi(
 )
 data class BillPhotoUi(val label: String, val hashShort: String, val fullHash: String, val timeText: String, val uri: android.net.Uri? = null)
 data class BillPhotoGroupUi(val title: String, val photos: List<BillPhotoUi>)
+/** The worst close-up of a room next to its optional after photo (plan.md Section 7, P2). */
+data class BeforeAfterUi(
+    val roomId: String,
+    val roomName: String,
+    val beforeUri: android.net.Uri?,
+    val afterUri: android.net.Uri?,
+    val afterHashShort: String?
+)
 
 /**
  * Bill screen: totals, per-room breakdown with the math shown on request, evidence photos
@@ -91,6 +99,9 @@ fun BillScreen(
     rooms: List<BillRoomUi>,
     photoGroups: List<BillPhotoGroupUi>,
     disclaimer: String,
+    beforeAfter: List<BeforeAfterUi> = emptyList(),
+    onAddAfterPhoto: (String) -> Unit = {},
+    onVerifyPhotos: () -> Unit = {},
     exportSheetVisible: Boolean,
     fileNameText: String,
     pdfMetaText: String,
@@ -108,7 +119,7 @@ fun BillScreen(
         topBar = {
             Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
                 IconButton(onClick = onBack) {
-                    Icon(Icons.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
                 }
                 Column(modifier = Modifier.padding(top = 10.dp)) {
                     Text(title, style = MaterialTheme.typography.headlineMedium)
@@ -149,7 +160,7 @@ fun BillScreen(
                                 Text(totalPayText, style = MaterialTheme.typography.displayLarge)
                             }
                         }
-                        Divider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f))
+                        HorizontalDivider(color = androidx.compose.ui.graphics.Color.White.copy(alpha = 0.25f))
                         Text(rangeNote, style = MaterialTheme.typography.bodyMedium)
                     }
                 }
@@ -168,7 +179,7 @@ fun BillScreen(
                                 Text(room.timeText, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
                         }
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         room.tasks.forEach { task ->
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Column(modifier = Modifier.weight(1f)) {
@@ -179,7 +190,7 @@ fun BillScreen(
                                 Text(task.minutesText, style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.SemiBold, modifier = Modifier.padding(start = 12.dp))
                             }
                         }
-                        Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                         Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                             Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                                 Text("${stringResource(R.string.bill_dirt_label)}: ${room.severityLabel}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
@@ -211,7 +222,46 @@ fun BillScreen(
                                         Text(row.label, color = if (row.emphasized) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurfaceVariant)
                                         Text(row.value, fontWeight = if (row.emphasized) FontWeight.Bold else FontWeight.Normal)
                                     }
-                                    Divider(color = MaterialTheme.colorScheme.outlineVariant)
+                                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            if (beforeAfter.isNotEmpty()) {
+                item {
+                    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)) {
+                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                            Column {
+                                Text(stringResource(R.string.bill_after_title), style = MaterialTheme.typography.titleLarge)
+                                Text(stringResource(R.string.bill_after_note), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                            beforeAfter.forEach { item ->
+                                Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
+                                    Text(item.roomName, style = MaterialTheme.typography.titleSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                    Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.fillMaxWidth()) {
+                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f)) {
+                                                PhotoImage(uri = item.beforeUri, modifier = Modifier.fillMaxSize())
+                                            }
+                                            Text(stringResource(R.string.bill_before_label), style = MaterialTheme.typography.labelMedium)
+                                        }
+                                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline), modifier = Modifier.fillMaxWidth().aspectRatio(4f / 3f)) {
+                                                if (item.afterUri != null) PhotoImage(uri = item.afterUri, modifier = Modifier.fillMaxSize())
+                                                else Box(contentAlignment = Alignment.Center) { Text(stringResource(R.string.bill_after_missing), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                                            }
+                                            Row(horizontalArrangement = Arrangement.spacedBy(6.dp), verticalAlignment = Alignment.CenterVertically) {
+                                                Text(stringResource(R.string.bill_after_label), style = MaterialTheme.typography.labelMedium)
+                                                if (item.afterHashShort != null) HashBadge(item.afterHashShort)
+                                            }
+                                        }
+                                    }
+                                    OutlinedButton(onClick = { onAddAfterPhoto(item.roomId) }, modifier = Modifier.fillMaxWidth()) {
+                                        Text(stringResource(if (item.afterUri == null) R.string.bill_after_add else R.string.bill_after_retake))
+                                    }
                                 }
                             }
                         }
@@ -256,6 +306,12 @@ fun BillScreen(
                             }
                         }
                     }
+                }
+            }
+
+            item {
+                OutlinedButton(onClick = onVerifyPhotos, modifier = Modifier.fillMaxWidth()) {
+                    Text(stringResource(R.string.bill_verify_button))
                 }
             }
 

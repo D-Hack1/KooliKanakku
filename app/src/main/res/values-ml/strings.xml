@@ -181,7 +181,10 @@
 
     <!-- Job hub screen -->
     <string name="jobhub_title">നിങ്ങളുടെ ജോലി</string>
-    <string name="jobhub_rooms_count">%1$d മുറികൾ</string>
+    <plurals name="jobhub_rooms_count_plural">
+        <item quantity="one">%1$d മുറി</item>
+        <item quantity="other">%1$d മുറികൾ</item>
+    </plurals>
     <string name="jobhub_rate_per_hour">₹%1$s മണിക്കൂറിന്</string>
     <string name="jobhub_pace_standard">സാധാരണ വേഗത 1.0×</string>
     <string name="jobhub_room_confirmed">സ്ഥിരീകരിച്ചു</string>

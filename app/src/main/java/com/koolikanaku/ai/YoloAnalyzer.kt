@@ -3,6 +3,7 @@ package com.koolikanaku.ai
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.RectF
+import android.util.Log
 import org.tensorflow.lite.Interpreter
 import com.koolikanaku.domain.DetectedObject
 import kotlinx.coroutines.Dispatchers
@@ -21,7 +22,16 @@ const val CONFIDENCE_THRESHOLD = 0.30f
 const val NMS_IOU_THRESHOLD = 0.50f
 
 /** Call once (e.g. from MainActivity.onCreate) before the first [detectObjects]. */
-fun initDetector(context: Context) = YoloAnalyzer.init(context.applicationContext)
+fun initDetector(context: Context): Boolean = try {
+    YoloAnalyzer.init(context.applicationContext)
+    true
+} catch (e: Exception) {
+    Log.e("YoloAnalyzer", "Detector failed to load", e)
+    false
+} catch (e: UnsatisfiedLinkError) {
+    Log.e("YoloAnalyzer", "LiteRT native library failed to load", e)
+    false
+}
 
 suspend fun detectObjects(bitmap: Bitmap): List<DetectedObject> = YoloAnalyzer.detect(bitmap)
 
