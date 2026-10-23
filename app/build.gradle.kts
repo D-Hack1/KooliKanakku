@@ -79,6 +79,7 @@ dependencies {
 
     // Unit Testing
     testImplementation(libs.junit)
+    testImplementation("org.mockito:mockito-core:5.14.2")
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
