@@ -257,7 +257,15 @@ fun AppNavGraph(
 
             LaunchedEffect(roomId) {
                 stageIndex = 0
-                vm.analyzeRoom(analyzeContext, roomId)
+                android.util.Log.d("AnalyzeFlow", "Starting analyzeRoom for $roomId")
+                val result = kotlinx.coroutines.withTimeoutOrNull(25_000) {
+                    vm.analyzeRoom(analyzeContext, roomId)
+                }
+                if (result == null) {
+                    android.util.Log.e("AnalyzeFlow", "analyzeRoom timed out after 25s for $roomId")
+                } else {
+                    android.util.Log.d("AnalyzeFlow", "Finished analyzeRoom for $roomId")
+                }
                 stageIndex = 1
                 delay(200)
                 stageIndex = 2

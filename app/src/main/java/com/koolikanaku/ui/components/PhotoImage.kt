@@ -41,6 +41,7 @@ fun PhotoImage(
             try {
                 PhotoStore.getDownscaledBitmap(context, uri, maxLongEdge = 480)
             } catch (e: Exception) {
+                android.util.Log.e("PhotoImage", "Failed to decode $uri", e)
                 null
             }
         }

@@ -191,14 +191,33 @@ class AppViewModel : ViewModel() {
         analysisError = null
         val appContext = context.applicationContext
         val useCase = AnalyzeRoom(
-            loadBitmap = { photo -> withContext(Dispatchers.IO) { PhotoStore.getDownscaledBitmap(appContext, photo.uri) } },
-            detectObjectsFn = ::detectObjects,
-            analyzeStainFn = ::analyzeStain,
+            loadBitmap = { photo ->
+                withContext(Dispatchers.IO) {
+                    val t0 = System.currentTimeMillis()
+                    val bmp = PhotoStore.getDownscaledBitmap(appContext, photo.uri)
+                    Log.d("AnalyzeFlow", "loadBitmap(${photo.role}) -> ${if (bmp != null) "${bmp.width}x${bmp.height}" else "null"} in ${System.currentTimeMillis() - t0}ms")
+                    bmp
+                }
+            },
+            detectObjectsFn = { bmp ->
+                val t0 = System.currentTimeMillis()
+                Log.d("AnalyzeFlow", "detectObjects starting on ${bmp.width}x${bmp.height}")
+                val result = detectObjects(bmp)
+                Log.d("AnalyzeFlow", "detectObjects -> ${result.size} raw detections in ${System.currentTimeMillis() - t0}ms: ${result.map { it.label }}")
+                result
+            },
+            analyzeStainFn = { bmp ->
+                val t0 = System.currentTimeMillis()
+                val result = analyzeStain(bmp)
+                Log.d("AnalyzeFlow", "analyzeStain -> $result in ${System.currentTimeMillis() - t0}ms")
+                result
+            },
             measureRoomFn = ::measureRoom,
             dummyFallback = false
         )
         try {
             val analyzed = useCase(room)
+            Log.d("AnalyzeFlow", "useCase complete. mergedTasks=${analyzed.tasks.map { "${it.catalogKey}:${it.source}:${it.quantity}" }} clutter=${analyzed.clutter} stain=${analyzed.stain}")
             updateRoom(roomId) { current ->
                 // Keep what the user entered while analysis ran; adopt the suggested type only if none was chosen.
                 val type = if (current.roomType == RoomType.OTHER) analyzed.suggestedRoomType ?: current.roomType else current.roomType
