@@ -222,34 +222,34 @@ fun SetupScreen(
                 }
             }
 
-            if (isWorker) {
-                item {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-                            Text(stringResource(R.string.setup_height_label), style = MaterialTheme.typography.titleMedium)
-                            Text(
-                                stringResource(R.string.setup_height_optional),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        OutlinedTextField(
-                            value = heightCm,
-                            onValueChange = { onHeightChange(it.filter { ch -> ch.isDigit() }) },
-                            placeholder = { Text("165") },
-                            trailingIcon = { Text(stringResource(R.string.setup_height_unit), color = MaterialTheme.colorScheme.onSurfaceVariant) },
-                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                        Text(stringResource(R.string.setup_height_label), style = MaterialTheme.typography.titleMedium)
                         Text(
-                            stringResource(R.string.setup_height_hint),
+                            stringResource(R.string.setup_height_optional),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
+                    OutlinedTextField(
+                        value = heightCm,
+                        onValueChange = { onHeightChange(it.filter { ch -> ch.isDigit() }) },
+                        placeholder = { Text("165") },
+                        trailingIcon = { Text(stringResource(R.string.setup_height_unit), color = MaterialTheme.colorScheme.onSurfaceVariant) },
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    Text(
+                        stringResource(R.string.setup_height_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-            } else {
+            }
+
+            if (!isWorker) {
                 item {
                     Surface(
                         shape = RoundedCornerShape(14.dp),

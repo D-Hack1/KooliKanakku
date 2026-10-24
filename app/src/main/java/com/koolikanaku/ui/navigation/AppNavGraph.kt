@@ -121,6 +121,18 @@ fun AppNavGraph(
     ) {
 
         composable(Routes.SETUP) {
+            LaunchedEffect(cvm.user?.role) {
+                when (cvm.user?.role) {
+                    Role.WORKER -> {
+                        vm.changeMode(AppMode.WORKER_ESTIMATE)
+                        cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                    }
+                    Role.OWNER -> {
+                        vm.changeMode(AppMode.OWNER_QUOTE)
+                    }
+                    null -> {}
+                }
+            }
             SetupScreen(
                 mode = vm.mode,
                 onModeChange = vm::changeMode,
@@ -704,6 +716,12 @@ fun AppNavGraph(
             LaunchedEffect(Unit) {
                 val existing = cvm.user
                 if (existing != null) {
+                    if (existing.role == Role.WORKER) {
+                        vm.changeMode(AppMode.WORKER_ESTIMATE)
+                        cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                    } else if (existing.role == Role.OWNER) {
+                        vm.changeMode(AppMode.OWNER_QUOTE)
+                    }
                     val dest = if (existing.role == Role.WORKER) Routes.WORKER_HOME else Routes.NEARBY_WORKERS
                     navController.navigate(dest) {
                         popUpTo(0)
@@ -724,7 +742,14 @@ fun AppNavGraph(
                         if (cvm.validateFormForRoleSelect()) navController.navigate(Routes.ROLE_SELECT)
                     } else {
                         cvm.submitAuth {
-                            val dest = if (cvm.user?.role == Role.WORKER) Routes.WORKER_HOME else Routes.NEARBY_WORKERS
+                            val role = cvm.user?.role
+                            if (role == Role.WORKER) {
+                                vm.changeMode(AppMode.WORKER_ESTIMATE)
+                                cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                            } else if (role == Role.OWNER) {
+                                vm.changeMode(AppMode.OWNER_QUOTE)
+                            }
+                            val dest = if (role == Role.WORKER) Routes.WORKER_HOME else Routes.NEARBY_WORKERS
                             navController.navigate(dest) {
                                 popUpTo(0)
                                 launchSingleTop = true
@@ -743,6 +768,12 @@ fun AppNavGraph(
                 onPick = { role ->
                     cvm.choosePendingRole(role)
                     cvm.submitAuth {
+                        if (role == Role.WORKER) {
+                            vm.changeMode(AppMode.WORKER_ESTIMATE)
+                            cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                        } else if (role == Role.OWNER) {
+                            vm.changeMode(AppMode.OWNER_QUOTE)
+                        }
                         val dest = if (role == Role.WORKER) Routes.WORKER_PROFILE else Routes.NEARBY_WORKERS
                         navController.navigate(dest) {
                             popUpTo(0)
@@ -797,7 +828,11 @@ fun AppNavGraph(
                 onDecline = { cvm.respondToBooking(it, false) },
                 onOpenBooking = { navController.navigate(Routes.bookingStatus(it)) },
                 onEditProfile = { navController.navigate(Routes.WORKER_PROFILE) },
-                onOpenEstimator = { navController.navigate(Routes.SETUP) },
+                onOpenEstimator = {
+                    vm.changeMode(AppMode.WORKER_ESTIMATE)
+                    cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                    navController.navigate(Routes.SETUP)
+                },
                 onSeeAllRequests = { navController.navigate(Routes.REQUEST_INBOX) },
                 onSignOut = {
                     cvm.signOut()
@@ -836,7 +871,10 @@ fun AppNavGraph(
                 areaLabel = cvm.ownerAreaLabel,
                 workers = workers,
                 onWorkerClick = { navController.navigate(Routes.workerDetail(it)) },
-                onOpenEstimator = { navController.navigate(Routes.SETUP) },
+                onOpenEstimator = {
+                    vm.changeMode(AppMode.OWNER_QUOTE)
+                    navController.navigate(Routes.SETUP)
+                },
                 onSignOut = {
                     cvm.signOut()
                     navController.navigate(Routes.WELCOME) {
