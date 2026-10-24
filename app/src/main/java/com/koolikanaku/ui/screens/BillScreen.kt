@@ -137,13 +137,9 @@ fun BillScreen(
         bottomBar = {
             Surface(shadowElevation = 4.dp) {
                 Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = onExportPdf, modifier = Modifier.weight(1f).height(54.dp)) {
+                    Button(onClick = onExportPdf, modifier = Modifier.fillMaxWidth().height(54.dp)) {
                         Icon(Icons.Outlined.PictureAsPdf, contentDescription = null)
                         Text(" " + stringResource(R.string.bill_export_pdf), style = MaterialTheme.typography.titleLarge)
-                    }
-                    OutlinedButton(onClick = onShare, modifier = Modifier.height(54.dp)) {
-                        Icon(Icons.Outlined.Share, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Text(" " + stringResource(R.string.bill_share))
                     }
                 }
             }

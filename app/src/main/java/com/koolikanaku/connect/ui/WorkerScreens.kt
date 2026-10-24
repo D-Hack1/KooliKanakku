@@ -144,6 +144,7 @@ fun WorkerHomeScreen(
     onOpenEstimator: () -> Unit,
     onSignOut: () -> Unit,
     onSeeAllRequests: () -> Unit = {},
+    onViewMyRatings: () -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -160,6 +161,7 @@ fun WorkerHomeScreen(
                         Text("Worker home", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = onViewMyRatings) { Text("My ratings") }
                         TextButton(onClick = onEditProfile) { Text("Edit profile") }
                         DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
