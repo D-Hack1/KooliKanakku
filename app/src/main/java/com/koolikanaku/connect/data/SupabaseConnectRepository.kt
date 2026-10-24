@@ -166,9 +166,18 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
     override fun nearbyOpenWorkers(geohashPrefixes: List<String>): Flow<List<WorkerCard>> = pollingFlow {
         val ownerGeohash5 = geohashPrefixes.firstOrNull()?.take(5)
         val rows = SupabaseHttp.get("open_workers", "select=*")
-        (0 until rows.length()).map { i -> cardFromOpenWorkerRow(rows.getJSONObject(i), ownerGeohash5) }
-            .sortedByDescending { it.ratingAvg * it.ratingCount + it.verifiedCount }
+        (0 until rows.length())
+            .map { i -> rows.getJSONObject(i) }
+            .map { o -> cardFromOpenWorkerRow(o, ownerGeohash5) to proximityRank(ownerGeohash5, o.optStringOrNull("geohash5")) }
+            // Nearest first (longer shared geohash prefix = closer, Section 5.1's own precision guidance);
+            // the rating/verified score only breaks ties between workers in the same distance band.
+            .sortedWith(compareByDescending<Pair<WorkerCard, Int>> { it.second }.thenByDescending { it.first.ratingAvg * it.first.ratingCount + it.first.verifiedCount })
+            .map { it.first }
     }
+
+    /** Length of the shared geohash5 prefix: the coarse-proximity measure this app uses (Section 5.1) - more shared characters means a smaller, closer cell. */
+    private fun proximityRank(ownerGeohash5: String?, workerGeohash5: String?): Int =
+        if (ownerGeohash5 == null || workerGeohash5 == null) -1 else ownerGeohash5.commonPrefixWith(workerGeohash5).length
 
     override suspend fun cardFor(uid: String): WorkerCard? {
         val rows = SupabaseHttp.get("open_workers", "uid=eq.${SupabaseHttp.encode(uid)}&select=*")
