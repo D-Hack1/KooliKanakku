@@ -64,6 +64,8 @@ class ConnectViewModel(
         private set
     var profileBio by mutableStateOf("")
         private set
+    var isProfileComplete by mutableStateOf(true)
+        private set
 
     // ---- Availability ----
     var openForWork by mutableStateOf(false)
@@ -91,7 +93,12 @@ class ConnectViewModel(
         ConnectBackend.init(appContext!!)
         user = auth.currentUser()
         val u = user ?: return
-        viewModelScope.launch { openForWork = workers.isOpen(u.uid) }
+        viewModelScope.launch {
+            openForWork = workers.isOpen(u.uid)
+            if (u.role == Role.WORKER) {
+                checkWorkerProfileComplete(u.uid)
+            }
+        }
     }
 
     val availableServices = listOf("kitchen", "bathroom", "bedroom", "living room", "general")
@@ -124,6 +131,17 @@ class ConnectViewModel(
     suspend fun phoneFor(bookingId: String, requesterId: String): String =
         bookings.counterpartPhone(bookingId, requesterId) ?: "9000000000"
 
+    suspend fun checkWorkerProfileComplete(uid: String): Boolean {
+        val p = runCatching { workers.getProfile(uid) }.getOrNull()
+        val complete = if (p == null) {
+            false
+        } else {
+            p.languages.isNotEmpty() || p.services.isNotEmpty() || p.rateMinInr > 0.0 || p.rateMaxInr > 0.0 || p.bio.isNotBlank()
+        }
+        isProfileComplete = complete
+        return complete
+    }
+
     fun submitAuth(onDone: () -> Unit) {
         val context = appContext ?: return
         authError = null
@@ -139,6 +157,54 @@ class ConnectViewModel(
             result.onSuccess {
                 user = it
                 openForWork = workers.isOpen(it.uid)
+                if (it.role == Role.WORKER) {
+                    checkWorkerProfileComplete(it.uid)
+                }
+                onDone()
+            }.onFailure {
+                authError = it.message ?: "Something went wrong"
+            }
+        }
+    }
+
+    /**
+     * Completes registration for a worker: creates the account AND immediately saves their full profile
+     * (languages, services, rates, bio) so Supabase is never left with an empty worker record.
+     */
+    fun submitWorkerSignUpAndProfile(onDone: () -> Unit) {
+        val context = appContext ?: return
+        authError = null
+        if (phoneText.length < 10) { authError = "Enter a 10-digit phone number"; return }
+        if (pinText.length != 6) { authError = "PIN must be 6 digits"; return }
+        if (nameText.isBlank()) { authError = "Enter your name"; return }
+
+        val finalLanguages = if (profileLanguages.isBlank()) {
+            listOf("Malayalam", "English")
+        } else {
+            profileLanguages.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        }
+        val finalServices = if (profileServices.isEmpty()) {
+            listOf("general")
+        } else {
+            profileServices.toList()
+        }
+
+        viewModelScope.launch {
+            val result = auth.signUp(phoneText, pinText, Role.WORKER, nameText)
+            result.onSuccess { newUser ->
+                user = newUser
+                val profile = WorkerProfile(
+                    uid = newUser.uid,
+                    name = newUser.name,
+                    languages = finalLanguages,
+                    services = finalServices,
+                    rateMinInr = profileRateMin.toDoubleOrNull() ?: 0.0,
+                    rateMaxInr = profileRateMax.toDoubleOrNull() ?: 0.0,
+                    bio = profileBio
+                )
+                workers.saveProfile(profile)
+                isProfileComplete = true
+                openForWork = workers.isOpen(newUser.uid)
                 onDone()
             }.onFailure {
                 authError = it.message ?: "Something went wrong"
@@ -150,6 +216,8 @@ class ConnectViewModel(
         auth.signOut()
         user = null
         openForWork = false
+        isProfileComplete = true
+        pendingRole = null
     }
 
     // ---- Worker profile ----
@@ -176,15 +244,29 @@ class ConnectViewModel(
 
     fun saveProfile(onDone: () -> Unit) {
         val u = user ?: return
+        val finalLanguages = if (profileLanguages.isBlank()) {
+            listOf("Malayalam", "English")
+        } else {
+            profileLanguages.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        }
+        val finalServices = if (profileServices.isEmpty()) {
+            listOf("general")
+        } else {
+            profileServices.toList()
+        }
         val profile = WorkerProfile(
             uid = u.uid, name = u.name,
-            languages = profileLanguages.split(",").map { it.trim() }.filter { it.isNotEmpty() },
-            services = profileServices.toList(),
+            languages = finalLanguages,
+            services = finalServices,
             rateMinInr = profileRateMin.toDoubleOrNull() ?: 0.0,
             rateMaxInr = profileRateMax.toDoubleOrNull() ?: 0.0,
             bio = profileBio
         )
-        viewModelScope.launch { workers.saveProfile(profile); onDone() }
+        viewModelScope.launch {
+            workers.saveProfile(profile)
+            isProfileComplete = true
+            onDone()
+        }
     }
 
     fun workerRateMidpoint(): Double {

@@ -1,5 +1,6 @@
 package com.koolikanaku.connect.ui
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
@@ -116,12 +117,19 @@ fun WorkerProfileScreen(
     bio: String,
     onBioChange: (String) -> Unit,
     onSave: () -> Unit,
+    onBack: (() -> Unit)? = null,
+    error: String? = null,
+    workerName: String = "",
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    if (onBack != null) {
+        BackHandler(onBack = onBack)
+    }
+
     val currentSelectedLangs = remember(languagesText) {
         languagesText.split(",")
             .map { it.trim() }
@@ -145,6 +153,14 @@ fun WorkerProfileScreen(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    if (onBack != null) {
+                        TextButton(
+                            onClick = onBack,
+                            modifier = Modifier.padding(bottom = 2.dp)
+                        ) {
+                            Text(t(language, "< Back", "< പിന്നിലേക്ക്"))
+                        }
+                    }
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -161,10 +177,30 @@ fun WorkerProfileScreen(
                         }
                     }
                     Text(
-                        t(language, "Owners see this when they browse nearby workers.", "സമീപത്തുള്ള ഉടമകൾ തൊഴിലാളികളെ തിരയുമ്പോൾ ഇത് കാണാം."),
+                        if (workerName.isNotBlank()) {
+                            t(
+                                language,
+                                "Hi $workerName, owners see this when they browse nearby workers.",
+                                "നമസ്കാരം $workerName, സമീപത്തുള്ള ഉടമകൾ തൊഴിലാളികളെ തിരയുമ്പോൾ ഇത് കാണാം."
+                            )
+                        } else {
+                            t(
+                                language,
+                                "Owners see this when they browse nearby workers.",
+                                "സമീപത്തുള്ള ഉടമകൾ തൊഴിലാളികളെ തിരയുമ്പോൾ ഇത് കാണാം."
+                            )
+                        },
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (error != null) {
+                        Text(
+                            error,
+                            color = MaterialTheme.colorScheme.error,
+                            style = MaterialTheme.typography.bodyMedium,
+                            modifier = Modifier.padding(top = 4.dp)
+                        )
+                    }
                 }
             }
 
@@ -295,31 +331,12 @@ fun WorkerHomeScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {
-<<<<<<< HEAD
-                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                    // Title and the two always-compact toggles share a row - these never grow with
-                    // text length in any language, so this row can never overflow.
-=======
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
->>>>>>> c2c201e7cb09a2d8339c57167c4dc9110b899f6b
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
-<<<<<<< HEAD
-                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                            Text(
-                                t(language, "Hi, $workerName", "നമസ്കാരം, $workerName"),
-                                style = MaterialTheme.typography.headlineMedium
-                            )
-                            Text(
-                                t(language, "Worker home", "തൊഴിലാളി ഹോം"),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-=======
                         Text(
                             t(language, "Hi, $workerName", "നമസ്കാരം, $workerName"),
                             style = MaterialTheme.typography.headlineSmall,
@@ -327,24 +344,11 @@ fun WorkerHomeScreen(
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
                         )
->>>>>>> c2c201e7cb09a2d8339c57167c4dc9110b899f6b
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             LanguageToggle(language = language, onLanguageChange = onLanguageChange)
                             DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                         }
                     }
-<<<<<<< HEAD
-                    // Text links get their own row, full width to themselves - Malayalam labels
-                    // ("പ്രൊഫൈൽ മാറ്റുക") run noticeably longer than their English counterparts and
-                    // used to squeeze/clip the title above when they shared a row with everything else.
-                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                        TextButton(onClick = onViewMyRatings) {
-                            Text(t(language, "My ratings", "റേറ്റിംഗുകൾ"))
-                        }
-                        TextButton(onClick = onEditProfile) {
-                            Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
-                        }
-=======
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
@@ -363,7 +367,6 @@ fun WorkerHomeScreen(
                                 Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
                             }
                         }
->>>>>>> c2c201e7cb09a2d8339c57167c4dc9110b899f6b
                     }
                 }
             }

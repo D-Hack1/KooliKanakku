@@ -788,13 +788,18 @@ fun AppNavGraph(
                     if (existing.role == Role.WORKER) {
                         vm.changeMode(AppMode.WORKER_ESTIMATE)
                         cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                        val isComplete = cvm.checkWorkerProfileComplete(existing.uid)
+                        val dest = if (isComplete) Routes.WORKER_HOME else Routes.WORKER_PROFILE
+                        navController.navigate(dest) {
+                            popUpTo(0)
+                            launchSingleTop = true
+                        }
                     } else if (existing.role == Role.OWNER) {
                         vm.changeMode(AppMode.OWNER_QUOTE)
-                    }
-                    val dest = if (existing.role == Role.WORKER) Routes.WORKER_HOME else Routes.NEARBY_WORKERS
-                    navController.navigate(dest) {
-                        popUpTo(0)
-                        launchSingleTop = true
+                        navController.navigate(Routes.NEARBY_WORKERS) {
+                            popUpTo(0)
+                            launchSingleTop = true
+                        }
                     }
                 }
             }
@@ -818,7 +823,11 @@ fun AppNavGraph(
                             } else if (role == Role.OWNER) {
                                 vm.changeMode(AppMode.OWNER_QUOTE)
                             }
-                            val dest = if (role == Role.WORKER) Routes.WORKER_HOME else Routes.NEARBY_WORKERS
+                            val dest = if (role == Role.WORKER) {
+                                if (cvm.isProfileComplete) Routes.WORKER_HOME else Routes.WORKER_PROFILE
+                            } else {
+                                Routes.NEARBY_WORKERS
+                            }
                             navController.navigate(dest) {
                                 popUpTo(0)
                                 launchSingleTop = true
@@ -842,17 +851,18 @@ fun AppNavGraph(
             RoleSelectScreen(
                 onPick = { role ->
                     cvm.choosePendingRole(role)
-                    cvm.submitAuth {
-                        if (role == Role.WORKER) {
-                            vm.changeMode(AppMode.WORKER_ESTIMATE)
-                            cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
-                        } else if (role == Role.OWNER) {
+                    if (role == Role.WORKER) {
+                        // Defer account creation until the worker fills and saves their profile details.
+                        // Keep the backstack so the worker can press back to edit or change role.
+                        navController.navigate(Routes.WORKER_PROFILE)
+                    } else {
+                        // For Owner, picking role is the final signup step.
+                        cvm.submitAuth {
                             vm.changeMode(AppMode.OWNER_QUOTE)
-                        }
-                        val dest = if (role == Role.WORKER) Routes.WORKER_PROFILE else Routes.NEARBY_WORKERS
-                        navController.navigate(dest) {
-                            popUpTo(0)
-                            launchSingleTop = true
+                            navController.navigate(Routes.NEARBY_WORKERS) {
+                                popUpTo(0)
+                                launchSingleTop = true
+                            }
                         }
                     }
                 },
@@ -864,18 +874,53 @@ fun AppNavGraph(
         }
 
         composable(Routes.WORKER_PROFILE) {
-            LaunchedEffect(Unit) { cvm.loadProfileIfAny() }
+            val isOnboarding = cvm.user == null
+            LaunchedEffect(Unit) {
+                if (!isOnboarding) {
+                    cvm.loadProfileIfAny()
+                }
+            }
             WorkerProfileScreen(
                 languagesText = cvm.profileLanguages, onLanguagesChange = cvm::changeProfileLanguages,
                 availableServices = cvm.availableServices, selectedServices = cvm.profileServices, onToggleService = cvm::toggleProfileService,
                 rateMin = cvm.profileRateMin, onRateMinChange = cvm::changeProfileRateMin,
                 rateMax = cvm.profileRateMax, onRateMaxChange = cvm::changeProfileRateMax,
                 bio = cvm.profileBio, onBioChange = cvm::changeProfileBio,
+                error = cvm.authError,
+                workerName = cvm.user?.name ?: cvm.nameText,
+                onBack = {
+                    if (isOnboarding) {
+                        navController.popBackStack()
+                    } else {
+                        if (!cvm.isProfileComplete) {
+                            cvm.signOut()
+                            navController.navigate(Routes.WELCOME) {
+                                popUpTo(0)
+                                launchSingleTop = true
+                            }
+                        } else {
+                            navController.popBackStack()
+                        }
+                    }
+                },
                 onSave = {
-                    cvm.saveProfile {
-                        navController.navigate(Routes.WORKER_HOME) {
-                            popUpTo(Routes.WORKER_HOME) { inclusive = true }
-                            launchSingleTop = true
+                    if (isOnboarding) {
+                        cvm.submitWorkerSignUpAndProfile {
+                            vm.changeMode(AppMode.WORKER_ESTIMATE)
+                            cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                            navController.navigate(Routes.WORKER_HOME) {
+                                popUpTo(0)
+                                launchSingleTop = true
+                            }
+                        }
+                    } else {
+                        cvm.saveProfile {
+                            vm.changeMode(AppMode.WORKER_ESTIMATE)
+                            cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                            navController.navigate(Routes.WORKER_HOME) {
+                                popUpTo(Routes.WORKER_HOME) { inclusive = true }
+                                launchSingleTop = true
+                            }
                         }
                     }
                 },
