@@ -110,11 +110,15 @@ fun SetupScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                    Row(
+                        modifier = Modifier.weight(1f, fill = false),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(10.dp)
+                    ) {
                         Surface(
                             shape = RoundedCornerShape(14.dp),
                             color = androidx.compose.ui.graphics.Color(0xFF15110E),
-                            modifier = Modifier.size(58.dp)
+                            modifier = Modifier.size(54.dp)
                         ) {
                             Image(
                                 painter = painterResource(R.drawable.app_logo),
@@ -123,11 +127,15 @@ fun SetupScreen(
                             )
                         }
                         Column {
-                            Text("KooliKanaku", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-                            Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                            Text("KooliKanaku", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                            Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
                         }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        modifier = Modifier.padding(start = 8.dp)
+                    ) {
                         LanguageToggle(language = language, onLanguageChange = onLanguageChange)
                         DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }

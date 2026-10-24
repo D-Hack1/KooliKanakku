@@ -208,9 +208,9 @@ fun WelcomeSignInScreen(
                 }
             }
             Row(
-                modifier = Modifier.align(Alignment.TopEnd).padding(top = 12.dp, end = 12.dp),
+                modifier = Modifier.align(Alignment.TopEnd).padding(top = 16.dp, end = 16.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 LanguageToggle(language = language, onLanguageChange = onLanguageChange)
                 DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
