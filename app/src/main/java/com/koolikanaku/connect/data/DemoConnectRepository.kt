@@ -131,11 +131,19 @@ object DemoConnectRepository : AuthRepository, WorkerRepository, BookingReposito
     override fun nearbyOpenWorkers(geohashPrefixes: List<String>): Flow<List<WorkerCard>> =
         storeFlow.map { s ->
             val now = System.currentTimeMillis()
+            val ownerGeohash = geohashPrefixes.firstOrNull()
             s.availability.entries
                 .filter { (_, a) -> a.open && (a.expiresAtEpochMs == null || a.expiresAtEpochMs > now) }
-                .mapNotNull { (uid, a) -> s.profiles[uid]?.let { toCard(it, a, s.ratings, geohashPrefixes.firstOrNull()) } }
-                .sortedByDescending { trustScore(it) }
+                .mapNotNull { (uid, a) -> s.profiles[uid]?.let { toCard(it, a, s.ratings, ownerGeohash) to proximityRank(ownerGeohash, a.geohash) } }
+                // Nearest first (longer shared geohash prefix = closer, Section 5.1's own precision guidance);
+                // trust score (Section 7.3) only breaks ties between workers in the same distance band.
+                .sortedWith(compareByDescending<Pair<WorkerCard, Int>> { it.second }.thenByDescending { trustScore(it.first) })
+                .map { it.first }
         }
+
+    /** Length of the shared geohash prefix: the standard coarse-proximity measure this app uses (Section 5.1) - more shared characters means a smaller, closer cell. */
+    private fun proximityRank(ownerGeohash: String?, workerGeohash: String?): Int =
+        if (ownerGeohash.isNullOrEmpty() || workerGeohash.isNullOrEmpty()) -1 else ownerGeohash.commonPrefixWith(workerGeohash).length
 
     override suspend fun cardFor(uid: String): WorkerCard? {
         val profile = store.profiles[uid] ?: return null
