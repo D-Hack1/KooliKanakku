@@ -9,10 +9,12 @@ import com.koolikanaku.connect.model.Rating
 import com.koolikanaku.connect.model.Role
 import com.koolikanaku.connect.model.WorkerCard
 import com.koolikanaku.connect.model.WorkerProfile
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.withTimeoutOrNull
 import org.json.JSONArray
 import org.json.JSONObject
 import java.time.OffsetDateTime
@@ -129,6 +131,7 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
             ),
             expectSingleObject = false
         )
+        triggerRefresh()
     }
 
     override suspend fun getProfile(uid: String): WorkerProfile? {
@@ -152,6 +155,7 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
             ),
             expectSingleObject = false
         )
+        triggerRefresh()
     }
 
     override suspend fun isOpen(uid: String): Boolean {
@@ -203,6 +207,7 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
     override suspend fun request(ownerId: String, workerId: String, whenIso: String, areaLabel: String, sizeHint: String): Booking {
         ensureFreshSession()
         val row = SupabaseHttp.rpc("request_booking", mapOf("p_worker_id" to workerId, "p_when" to whenIso, "p_area_label" to areaLabel, "p_size_hint" to sizeHint)) as JSONObject
+        triggerRefresh()
         return bookingFromRow(row)
     }
 
@@ -221,12 +226,14 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
     override suspend fun respond(bookingId: String, accept: Boolean) {
         ensureFreshSession()
         SupabaseHttp.rpc("booking_action", mapOf("p_booking_id" to bookingId, "p_action" to if (accept) "accept" else "decline"))
+        triggerRefresh()
     }
 
     override suspend fun setStatus(bookingId: String, status: BookingStatus) {
         ensureFreshSession()
         val action = when (status) { BookingStatus.ARRIVED -> "arrived"; BookingStatus.IN_PROGRESS -> "in_progress"; else -> return }
         SupabaseHttp.rpc("booking_action", mapOf("p_booking_id" to bookingId, "p_action" to action))
+        triggerRefresh()
     }
 
     override suspend fun complete(bookingId: String, summary: EvidenceSummary) {
@@ -237,11 +244,13 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
             "afterPhotoHashes" to summary.afterPhotoHashes, "photoCount" to summary.photoCount, "generatedAtEpochMs" to summary.generatedAtEpochMs
         )
         SupabaseHttp.rpc("complete_booking", mapOf("p_booking_id" to bookingId, "p_evidence" to evidence))
+        triggerRefresh()
     }
 
     override suspend fun cancel(bookingId: String, reason: String) {
         ensureFreshSession()
         SupabaseHttp.rpc("cancel_booking", mapOf("p_booking_id" to bookingId, "p_reason" to reason))
+        triggerRefresh()
     }
 
     override suspend fun counterpartPhone(bookingId: String, requesterId: String): String? {
@@ -278,6 +287,7 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
     override suspend fun rate(bookingId: String, stars: Int, tags: List<String>, comment: String) {
         ensureFreshSession()
         SupabaseHttp.rpc("rate_booking", mapOf("p_booking_id" to bookingId, "p_stars" to stars, "p_tags" to tags, "p_comment" to comment))
+        triggerRefresh()
     }
 
     override fun ratingsFor(workerId: String): Flow<List<Rating>> = pollingFlow {
@@ -293,10 +303,16 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
 
     // ---------------- helpers ----------------
 
+    /** Fires right after one of this client's own mutations, so a polling flow re-fetches immediately
+     * instead of waiting out the rest of its poll window - this is what makes actions feel instant
+     * even on a slow connection, rather than "network delay + up to POLL_INTERVAL_MS more". */
+    private val refreshNow = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
+    private fun triggerRefresh() { refreshNow.tryEmit(Unit) }
+
     private fun <T> pollingFlow(fetch: suspend () -> T): Flow<T> = flow {
         while (true) {
             runCatching { fetch() }.onSuccess { emit(it) }
-            delay(POLL_INTERVAL_MS)
+            withTimeoutOrNull(POLL_INTERVAL_MS) { refreshNow.first() }
         }
     }.distinctUntilChanged()
 

@@ -30,12 +30,15 @@ import com.koolikanaku.connect.model.BookingStatus
 import com.koolikanaku.connect.model.EvidenceSummary
 import com.koolikanaku.connect.model.Role
 import com.koolikanaku.connect.ui.BookingStatusScreen
+import com.koolikanaku.connect.ui.HiredWorkerSummary
+import com.koolikanaku.connect.ui.HiredWorkersScreen
 import com.koolikanaku.connect.ui.NearbyWorkersScreen
 import com.koolikanaku.connect.ui.RateWorkerScreen
 import com.koolikanaku.connect.ui.RequestInboxScreen
 import com.koolikanaku.connect.ui.RoleSelectScreen
 import com.koolikanaku.connect.ui.WelcomeSignInScreen
 import com.koolikanaku.connect.ui.WorkerDetailScreen
+import com.koolikanaku.connect.ui.WorkerHistoryScreen
 import com.koolikanaku.connect.ui.WorkerHomeScreen
 import com.koolikanaku.connect.ui.WorkerProfileScreen
 import com.koolikanaku.domain.AppMode
@@ -88,6 +91,10 @@ object Routes {
     fun bookingStatus(bookingId: String) = "booking_status/$bookingId"
     const val RATE_WORKER = "rate_worker/{bookingId}"
     fun rateWorker(bookingId: String) = "rate_worker/$bookingId"
+    const val WORKER_RATINGS = "worker_ratings"
+    const val HIRED_WORKERS = "hired_workers"
+    const val WORKER_HISTORY = "worker_history/{workerId}"
+    fun workerHistory(workerId: String) = "worker_history/$workerId"
 
     const val SETUP = "setup"
     const val JOB_HUB = "job_hub"
@@ -853,6 +860,9 @@ fun AppNavGraph(
             val allBookings by cvm.bookingsForUser().collectAsState(initial = emptyList())
             val incoming = allBookings.filter { it.status == BookingStatus.REQUESTED }
             val active = allBookings.firstOrNull { it.status in setOf(BookingStatus.ACCEPTED, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS) }
+            // Loaded here (not just on the Profile screen) so the saved rate is available for the
+            // "Open offline estimator" prefill below even if this session never opened Edit profile.
+            LaunchedEffect(Unit) { cvm.loadProfileIfAny() }
             WorkerHomeScreen(
                 workerName = user.name,
                 openForWork = cvm.openForWork,
@@ -870,6 +880,7 @@ fun AppNavGraph(
                     navController.navigate(Routes.SETUP)
                 },
                 onSeeAllRequests = { navController.navigate(Routes.REQUEST_INBOX) },
+                onViewMyRatings = { navController.navigate(Routes.WORKER_RATINGS) },
                 onSignOut = {
                     cvm.signOut()
                     navController.navigate(Routes.WELCOME) {
@@ -878,6 +889,34 @@ fun AppNavGraph(
                     }
                 },
                 language = vm.language, onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(Routes.WORKER_RATINGS) {
+            val uid = cvm.user?.uid
+            // Built from the profile + rating list directly, not workerCard()/cardFor() - those only
+            // return a row while the worker is open for work, but a worker must see their own ratings
+            // whether they're currently visible to owners or not.
+            var profile by remember { mutableStateOf<com.koolikanaku.connect.model.WorkerProfile?>(null) }
+            LaunchedEffect(uid) { profile = uid?.let { cvm.profileFor(it) } }
+            val recentRatings by (uid?.let { cvm.ratingsFor(it) } ?: kotlinx.coroutines.flow.flowOf(emptyList()))
+                .collectAsState(initial = emptyList())
+            val worker = profile?.let { p ->
+                com.koolikanaku.connect.model.WorkerCard(
+                    uid = p.uid, name = p.name, languages = p.languages, services = p.services,
+                    rateMinInr = p.rateMinInr, rateMaxInr = p.rateMaxInr, bio = p.bio,
+                    ratingAvg = if (recentRatings.isEmpty()) 0.0 else recentRatings.sumOf { it.stars } / recentRatings.size.toDouble(),
+                    ratingCount = recentRatings.size, verifiedCount = recentRatings.count { it.verified },
+                    distanceBandLabel = ""
+                )
+            }
+            WorkerDetailScreen(
+                worker = worker,
+                recentRatings = recentRatings,
+                onRequestBooking = {},
+                showRequestButton = false,
+                onBack = { navController.popBackStack() },
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -913,6 +952,7 @@ fun AppNavGraph(
                     vm.changeMode(AppMode.OWNER_QUOTE)
                     navController.navigate(Routes.SETUP)
                 },
+                onViewHiredWorkers = { navController.navigate(Routes.HIRED_WORKERS) },
                 onSignOut = {
                     cvm.signOut()
                     navController.navigate(Routes.WELCOME) {
@@ -921,6 +961,51 @@ fun AppNavGraph(
                     }
                 },
                 language = vm.language, onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(Routes.HIRED_WORKERS) {
+            val uid = cvm.user?.uid
+            val allBookings by cvm.bookingsForUser().collectAsState(initial = emptyList())
+            val hired = allBookings
+                .filter { it.ownerId == uid }
+                .groupBy { it.workerId }
+                .map { (workerId, bookingsWithWorker) ->
+                    val latest = bookingsWithWorker.maxBy { it.createdAtEpochMs }
+                    latest.createdAtEpochMs to HiredWorkerSummary(
+                        workerId = workerId,
+                        workerName = latest.workerName,
+                        bookingCount = bookingsWithWorker.size,
+                        lastStatus = latest.status,
+                        lastDateText = java.text.DateFormat.getDateInstance().format(java.util.Date(latest.createdAtEpochMs))
+                    )
+                }
+                .sortedByDescending { it.first }
+                .map { it.second }
+            HiredWorkersScreen(
+                workers = hired,
+                onWorkerClick = { navController.navigate(Routes.workerHistory(it)) },
+                onBack = { navController.popBackStack() },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(
+            Routes.WORKER_HISTORY,
+            arguments = listOf(navArgument("workerId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val workerId = backStackEntry.arguments?.getString("workerId") ?: return@composable
+            val uid = cvm.user?.uid
+            val allBookings by cvm.bookingsForUser().collectAsState(initial = emptyList())
+            val withThisWorker = allBookings
+                .filter { it.ownerId == uid && it.workerId == workerId }
+                .sortedByDescending { it.createdAtEpochMs }
+            WorkerHistoryScreen(
+                workerName = withThisWorker.firstOrNull()?.workerName ?: "worker",
+                bookings = withThisWorker,
+                onOpenBooking = { navController.navigate(Routes.bookingStatus(it)) },
+                onBack = { navController.popBackStack() },
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }

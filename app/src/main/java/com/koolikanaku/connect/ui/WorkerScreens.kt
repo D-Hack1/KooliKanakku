@@ -281,6 +281,7 @@ fun WorkerHomeScreen(
     onSeeAllRequests: () -> Unit = {},
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
+    onViewMyRatings: () -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -312,6 +313,9 @@ fun WorkerHomeScreen(
                             Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
                         }
                         LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        TextButton(onClick = onViewMyRatings) { Text("My ratings") }
+                        TextButton(onClick = onEditProfile) { Text("Edit profile") }
                         DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
