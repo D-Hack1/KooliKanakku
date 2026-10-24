@@ -309,13 +309,13 @@ fun WorkerHomeScreen(
                         )
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = onViewMyRatings) {
+                            Text(t(language, "My ratings", "റേറ്റിംഗുകൾ"))
+                        }
                         TextButton(onClick = onEditProfile) {
                             Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
                         }
                         LanguageToggle(language = language, onLanguageChange = onLanguageChange)
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onViewMyRatings) { Text("My ratings") }
-                        TextButton(onClick = onEditProfile) { Text("Edit profile") }
                         DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
