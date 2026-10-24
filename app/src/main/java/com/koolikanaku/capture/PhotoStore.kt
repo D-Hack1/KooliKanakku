@@ -51,7 +51,12 @@ object PhotoStore {
     ): EvidencePhoto {
         require(file.exists() && file.length() > 0) { "Captured file does not exist or is empty: ${file.absolutePath}" }
 
-        // Hash the EXACT saved bytes on disk
+        // Every evidence photo is shown in a 1:1 box (Bill screen's photo grid, before/after cards).
+        // Center-crop to square here, once, at the source - never stretched - so what's saved IS what's
+        // later displayed, instead of each display spot doing its own crop against a differently-framed photo.
+        cropToSquareInPlace(file)
+
+        // Hash the EXACT saved bytes on disk (after the crop, so the hash matches what's actually stored/shown)
         val sha256 = CryptoUtils.sha256(file)
         val uri = FileProvider.getUriForFile(
             context,
@@ -201,6 +206,43 @@ object PhotoStore {
 
         // Search within photosDir
         return photosDir.listFiles()?.firstOrNull { it.name == lastSegment }
+    }
+
+    /**
+     * Center-crops a saved JPEG to a 1:1 square in place: applies EXIF rotation first (so the crop
+     * is taken from the upright image, not the raw sensor orientation), then crops the longer side
+     * down to match the shorter one. Never scales width and height independently - that would
+     * squeeze/distort the content, exactly what this is meant to avoid.
+     */
+    private fun cropToSquareInPlace(file: File) {
+        val rotationDegrees = getExifOrientationDegrees { file.inputStream() }
+        val decoded = file.inputStream().use { BitmapFactory.decodeStream(it) } ?: return
+        val upright = if (rotationDegrees != 0f) {
+            val matrix = Matrix().apply { postRotate(rotationDegrees) }
+            val rotated = Bitmap.createBitmap(decoded, 0, 0, decoded.width, decoded.height, matrix, true)
+            if (rotated != decoded) decoded.recycle()
+            rotated
+        } else decoded
+
+        val side = minOf(upright.width, upright.height)
+        if (upright.width == upright.height) {
+            // Already square (e.g. a gallery-imported image) - nothing to crop, just write back upright.
+            writeJpeg(file, upright)
+            upright.recycle()
+            return
+        }
+        val left = (upright.width - side) / 2
+        val top = (upright.height - side) / 2
+        val square = Bitmap.createBitmap(upright, left, top, side, side)
+        upright.recycle()
+        writeJpeg(file, square)
+        square.recycle()
+    }
+
+    private fun writeJpeg(file: File, bitmap: Bitmap) {
+        FileOutputStream(file).use { out ->
+            bitmap.compress(Bitmap.CompressFormat.JPEG, 95, out)
+        }
     }
 
     private fun getPhotosDir(context: Context): File {

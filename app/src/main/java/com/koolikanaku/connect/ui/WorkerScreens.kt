@@ -26,6 +26,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
@@ -72,6 +73,17 @@ private fun translateService(service: String, language: AppLanguage): String {
         else -> service
     }
 }
+
+/** The "Active booking" card (both Worker and Owner home) only ever shows a booking while it's in
+ * one of these non-terminal states - collapsed to one "in progress" badge the whole span, instead
+ * of cycling through requested/accepted/arrived/in_progress wording, so it reads as one continuous
+ * state right from the moment the owner hires someone up until "Finish the booking" completes it. */
+internal fun activeBookingStatusLabel(status: BookingStatus, language: AppLanguage): String =
+    if (status in setOf(BookingStatus.REQUESTED, BookingStatus.ACCEPTED, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS)) {
+        t(language, "in progress", "പുരോഗതിയിൽ")
+    } else {
+        bookingStatusLabel(status, language)
+    }
 
 internal fun bookingStatusLabel(status: BookingStatus, language: AppLanguage = AppLanguage.EN): String {
     if (language != AppLanguage.ML) return status.name.lowercase().replace('_', ' ')
@@ -269,6 +281,7 @@ fun WorkerHomeScreen(
     onOpenEstimator: () -> Unit,
     onSignOut: () -> Unit,
     onSeeAllRequests: () -> Unit = {},
+    busy: Boolean = false,
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     onViewMyRatings: () -> Unit = {},
@@ -412,6 +425,7 @@ fun WorkerHomeScreen(
                         RequestCard(
                             booking = b,
                             language = language,
+                            busy = busy,
                             onAccept = { onAccept(b.id) },
                             onDecline = { onDecline(b.id) }
                         )
@@ -456,6 +470,7 @@ fun RequestInboxScreen(
     onAccept: (String) -> Unit,
     onDecline: (String) -> Unit,
     onBack: () -> Unit,
+    busy: Boolean = false,
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
@@ -505,6 +520,7 @@ fun RequestInboxScreen(
                     RequestCard(
                         booking = b,
                         language = language,
+                        busy = busy,
                         onAccept = { onAccept(b.id) },
                         onDecline = { onDecline(b.id) }
                     )
@@ -518,6 +534,7 @@ fun RequestInboxScreen(
 internal fun RequestCard(
     booking: Booking,
     language: AppLanguage = AppLanguage.EN,
+    busy: Boolean = false,
     onAccept: () -> Unit,
     onDecline: () -> Unit
 ) {
@@ -536,10 +553,11 @@ internal fun RequestCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 8.dp)) {
-                Button(onClick = onAccept, modifier = Modifier.weight(1f).height(44.dp)) {
-                    Text(t(language, "Accept", "സ്വീകരിക്കുക"))
+                Button(onClick = onAccept, enabled = !busy, modifier = Modifier.weight(1f).height(44.dp)) {
+                    if (busy) CircularProgressIndicator(modifier = Modifier.height(18.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                    else Text(t(language, "Accept", "സ്വീകരിക്കുക"))
                 }
-                OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f).height(44.dp)) {
+                OutlinedButton(onClick = onDecline, enabled = !busy, modifier = Modifier.weight(1f).height(44.dp)) {
                     Text(t(language, "Decline", "നിരസിക്കുക"))
                 }
             }
@@ -592,7 +610,7 @@ internal fun BookingCard(
                 modifier = Modifier.wrapContentWidth()
             ) {
                 Text(
-                    bookingStatusLabel(booking.status, language),
+                    activeBookingStatusLabel(booking.status, language),
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
                     style = MaterialTheme.typography.labelMedium
                 )

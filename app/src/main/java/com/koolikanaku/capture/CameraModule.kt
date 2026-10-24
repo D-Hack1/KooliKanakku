@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -140,9 +141,12 @@ fun CameraCaptureScreen(
     }
 
     Box(modifier = modifier.fillMaxSize().background(Color.Black)) {
-        // Camera Preview
+        // Camera Preview, boxed to the same 1:1 square the saved photo is cropped to (PhotoStore.
+        // cropToSquareInPlace), so what's framed here is what ends up in the evidence photo - no
+        // surprise crop after the fact. PreviewView's default FILL_CENTER scale center-crops into
+        // this square exactly the way the post-capture crop does.
         AndroidView(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier.fillMaxWidth().aspectRatio(1f).align(Alignment.Center),
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
