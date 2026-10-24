@@ -13,8 +13,10 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -140,9 +142,9 @@ fun BillScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(title, style = MaterialTheme.typography.headlineMedium)
-                        Text(subtitleLine, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Column(modifier = Modifier.weight(1f, fill = false), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(title, style = MaterialTheme.typography.titleLarge, maxLines = 1, overflow = TextOverflow.Ellipsis)
+                        Text(subtitleLine, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant, maxLines = 1, overflow = TextOverflow.Ellipsis)
                     }
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -154,9 +156,9 @@ fun BillScreen(
         bottomBar = {
             Surface(shadowElevation = 4.dp) {
                 Row(modifier = Modifier.padding(16.dp), horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Button(onClick = onExportPdf, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Button(onClick = onExportPdf, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                         Icon(Icons.Outlined.PictureAsPdf, contentDescription = null)
-                        Text(" " + stringResource(R.string.bill_export_pdf), style = MaterialTheme.typography.titleLarge)
+                        Text(" " + stringResource(R.string.bill_export_pdf), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }

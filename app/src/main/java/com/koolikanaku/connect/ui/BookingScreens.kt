@@ -9,14 +9,19 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.sp
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
@@ -132,40 +137,42 @@ fun BookingStatusScreen(
 
             if (booking.status == BookingStatus.ACCEPTED || booking.status == BookingStatus.ARRIVED || booking.status == BookingStatus.IN_PROGRESS) {
                 item {
-                    Button(onClick = onCall, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Button(onClick = onCall, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                         Text(
                             t(
                                 language,
                                 "Call ${if (meIsWorker) "owner" else "worker"} - share the address by voice",
                                 "${if (meIsWorker) "ഉടമയെ" else "തൊഴിലാളിയെ"} വിളിക്കുക - ഫോണിലൂടെ വിലാസം നൽകാം"
                             ),
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
             if (booking.status == BookingStatus.ACCEPTED) {
                 item {
-                    OutlinedButton(onClick = onArrived, modifier = Modifier.fillMaxWidth().height(50.dp)) {
-                        Text(t(language, "I've arrived / worker arrived", "ഞാൻ എത്തി / തൊഴിലാളി എത്തിച്ചേർന്നു"))
+                    OutlinedButton(onClick = onArrived, modifier = Modifier.fillMaxWidth().heightIn(min = 50.dp)) {
+                        Text(t(language, "I've arrived / worker arrived", "ഞാൻ എത്തി / തൊഴിലാളി എത്തിച്ചേർന്നു"), textAlign = TextAlign.Center)
                     }
                 }
             }
             if (booking.status == BookingStatus.ARRIVED || booking.status == BookingStatus.IN_PROGRESS) {
                 item {
-                    Button(onClick = onStartEstimate, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Button(onClick = onStartEstimate, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                         Text(
                             if (meIsWorker) t(language, "Start the estimate", "എസ്റ്റിമേറ്റ് തുടങ്ങുക")
                             else t(language, "Start the estimate (quotation)", "ക്വട്ടേഷൻ ആരംഭിക്കുക"),
-                            style = MaterialTheme.typography.titleMedium
+                            style = MaterialTheme.typography.titleMedium,
+                            textAlign = TextAlign.Center
                         )
                     }
                 }
             }
             if (booking.status == BookingStatus.COMPLETED && !meIsWorker) {
                 item {
-                    Button(onClick = onRate, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                        Text(t(language, "Rate this worker", "തൊഴിലാളിക്ക് റേറ്റിംഗ് നൽകുക"))
+                    Button(onClick = onRate, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                        Text(t(language, "Rate this worker", "തൊഴിലാളിക്ക് റേറ്റിംഗ് നൽകുക"), textAlign = TextAlign.Center)
                     }
                 }
             }
@@ -195,7 +202,9 @@ private fun StatusTimeline(current: BookingStatus, language: AppLanguage = AppLa
                 }
                 Text(
                     bookingStatusLabel(status, language),
-                    style = MaterialTheme.typography.labelSmall,
+                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, lineHeight = 12.sp),
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
                     modifier = Modifier.padding(top = 4.dp)
                 )
             }
@@ -246,7 +255,12 @@ fun RateWorkerScreen(
                     }
                 }
             }
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+            @OptIn(ExperimentalLayoutApi::class)
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
                 availableTags.forEach { tag ->
                     FilterChip(
                         selected = tag in selectedTags,
@@ -283,7 +297,7 @@ fun RateWorkerScreen(
                     style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(14.dp)
                 )
             }
-            Button(onClick = onSubmit, enabled = stars > 0, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+            Button(onClick = onSubmit, enabled = stars > 0, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                 Text(t(language, "Submit rating", "റേറ്റിംഗ് സമർപ്പിക്കുക"), style = MaterialTheme.typography.titleMedium)
             }
         }

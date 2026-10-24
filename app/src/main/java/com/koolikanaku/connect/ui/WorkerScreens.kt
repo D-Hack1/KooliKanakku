@@ -12,10 +12,13 @@ import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
@@ -39,6 +42,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.connect.model.Booking
 import com.koolikanaku.connect.model.BookingStatus
@@ -128,26 +132,27 @@ fun WorkerProfileScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             t(language, "Your worker profile", "നിങ്ങളുടെ തൊഴിലാളി പ്രൊഫൈൽ"),
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.headlineSmall,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
-                        Text(
-                            t(language, "Owners see this when they browse nearby workers.", "സമീപത്തുള്ള ഉടമകൾ തൊഴിലാളികളെ തിരയുമ്പോൾ ഇത് കാണാം."),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
-                    }
+                    Text(
+                        t(language, "Owners see this when they browse nearby workers.", "സമീപത്തുള്ള ഉടമകൾ തൊഴിലാളികളെ തിരയുമ്പോൾ ഇത് കാണാം."),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
 
@@ -157,24 +162,13 @@ fun WorkerProfileScreen(
                         t(language, "Select languages known", "അറിയാവുന്ന ഭാഷകൾ തിരഞ്ഞെടുക്കുക"),
                         style = MaterialTheme.typography.titleMedium
                     )
-                    Row(
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
                         modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        POPULAR_LANGUAGES.take(3).forEach { (langEn, langNative) ->
-                            val isSelected = currentSelectedLangs.any { it.equals(langEn, ignoreCase = true) }
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { toggleLanguage(langEn) },
-                                label = { Text(if (language == AppLanguage.ML) langNative else langEn) }
-                            )
-                        }
-                    }
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        horizontalArrangement = Arrangement.spacedBy(8.dp)
-                    ) {
-                        POPULAR_LANGUAGES.drop(3).forEach { (langEn, langNative) ->
+                        POPULAR_LANGUAGES.forEach { (langEn, langNative) ->
                             val isSelected = currentSelectedLangs.any { it.equals(langEn, ignoreCase = true) }
                             FilterChip(
                                 selected = isSelected,
@@ -200,17 +194,13 @@ fun WorkerProfileScreen(
                         t(language, "Services offered", "നൽകുന്ന സേവനങ്ങൾ"),
                         style = MaterialTheme.typography.titleMedium
                     )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        availableServices.take(3).forEach { service ->
-                            FilterChip(
-                                selected = service in selectedServices,
-                                onClick = { onToggleService(service) },
-                                label = { Text(translateService(service, language)) }
-                            )
-                        }
-                    }
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        availableServices.drop(3).forEach { service ->
+                    @OptIn(ExperimentalLayoutApi::class)
+                    FlowRow(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        availableServices.forEach { service ->
                             FilterChip(
                                 selected = service in selectedServices,
                                 onClick = { onToggleService(service) },
@@ -252,7 +242,7 @@ fun WorkerProfileScreen(
             }
 
             item {
-                Button(onClick = onSave, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                Button(onClick = onSave, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                     Text(
                         t(language, "Save profile", "പ്രൊഫൈൽ സേവ് ചെയ്യുക"),
                         style = MaterialTheme.typography.titleMedium
@@ -292,31 +282,42 @@ fun WorkerHomeScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             t(language, "Hi, $workerName", "നമസ്കാരം, $workerName"),
-                            style = MaterialTheme.typography.headlineMedium
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
                         )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
                         Text(
                             t(language, "Worker home", "തൊഴിലാളി ഹോം"),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        TextButton(onClick = onViewMyRatings) {
-                            Text(t(language, "My ratings", "റേറ്റിംഗുകൾ"))
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                            TextButton(onClick = onViewMyRatings) {
+                                Text(t(language, "My ratings", "റേറ്റിംഗുകൾ"))
+                            }
+                            TextButton(onClick = onEditProfile) {
+                                Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
+                            }
                         }
-                        TextButton(onClick = onEditProfile) {
-                            Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
-                        }
-                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
             }

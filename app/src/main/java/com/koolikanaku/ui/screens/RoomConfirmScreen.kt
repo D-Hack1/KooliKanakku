@@ -14,8 +14,10 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentWidth
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -154,14 +156,7 @@ fun RoomConfirmScreen(
                     IconButton(onClick = onBack) {
                         Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
                     }
-                    Column(modifier = Modifier.padding(top = 4.dp)) {
-                        Text(stringResource(R.string.confirm_title), style = MaterialTheme.typography.headlineMedium)
-                        Text(
-                            stringResource(R.string.confirm_subtitle, roomNumber),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    Text(stringResource(R.string.confirm_title), style = MaterialTheme.typography.titleLarge)
                 }
                 Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     LanguageToggle(language = language, onLanguageChange = onLanguageChange)
@@ -173,17 +168,17 @@ fun RoomConfirmScreen(
             Surface(shadowElevation = 4.dp) {
                 Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                        Column {
+                        Column(modifier = Modifier.weight(1f)) {
                             Text(stringResource(R.string.confirm_estimate_label), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Text("$estimateHoursText · $estimatePayText", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                            Text("$estimateHoursText · $estimatePayText", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
                         }
-                        Column(horizontalAlignment = Alignment.End) {
+                        Column(horizontalAlignment = Alignment.End, modifier = Modifier.wrapContentWidth()) {
                             Text(mathLine1, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Text(mathLine2, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         }
                     }
-                    Button(onClick = onSaveRoom, enabled = canSave, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                        Text(stringResource(R.string.confirm_save_room), style = MaterialTheme.typography.titleLarge)
+                    Button(onClick = onSaveRoom, enabled = canSave, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
+                        Text(stringResource(R.string.confirm_save_room), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -193,6 +188,13 @@ fun RoomConfirmScreen(
             contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 8.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
+            item {
+                Text(
+                    stringResource(R.string.confirm_subtitle, roomNumber),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Row(horizontalArrangement = Arrangement.spacedBy(6.dp), modifier = Modifier.fillMaxWidth()) {

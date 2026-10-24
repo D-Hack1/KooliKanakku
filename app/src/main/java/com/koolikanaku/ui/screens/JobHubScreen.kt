@@ -4,11 +4,14 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -83,9 +86,9 @@ fun JobHubScreen(
                     Button(
                         onClick = onFinish,
                         enabled = hasRooms && canFinish,
-                        modifier = Modifier.fillMaxWidth().height(54.dp)
+                        modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)
                     ) {
-                        Text(stringResource(R.string.jobhub_finish_button), style = MaterialTheme.typography.titleLarge)
+                        Text(stringResource(R.string.jobhub_finish_button), style = MaterialTheme.typography.titleMedium)
                     }
                 }
             }
@@ -101,8 +104,8 @@ fun JobHubScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column(modifier = Modifier.weight(1f)) {
-                        Text(stringResource(R.string.jobhub_title), style = MaterialTheme.typography.headlineLarge)
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
+                        Text(stringResource(R.string.jobhub_title), style = MaterialTheme.typography.headlineMedium)
                         Text(
                             pluralStringResource(R.plurals.jobhub_rooms_count_plural, rooms.size, rooms.size),
                             style = MaterialTheme.typography.bodyLarge,
@@ -114,7 +117,11 @@ fun JobHubScreen(
                         DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
-                Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
+                @OptIn(ExperimentalLayoutApi::class)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    verticalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
                     Pill(modeLabel, filled = true)
                     Pill(rateLabel, filled = false)
                     Pill(paceLabel, filled = false)
