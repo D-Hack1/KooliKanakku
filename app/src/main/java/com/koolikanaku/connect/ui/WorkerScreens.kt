@@ -39,7 +39,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -302,6 +306,7 @@ fun WorkerProfileScreen(
 }
 
 /** extra_feature.md Section 9: "Worker home" - the big toggle, visibility banner, and incoming requests. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun WorkerHomeScreen(
     workerName: String,
@@ -318,6 +323,7 @@ fun WorkerHomeScreen(
     onSignOut: () -> Unit,
     onSeeAllRequests: () -> Unit = {},
     busy: Boolean = false,
+    onRefresh: () -> Unit = {},
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     onViewMyRatings: () -> Unit = {},
@@ -325,7 +331,17 @@ fun WorkerHomeScreen(
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var isRefreshing by remember { mutableStateOf(false) }
+    val refreshScope = rememberCoroutineScope()
     Scaffold(modifier = modifier) { padding ->
+      androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            onRefresh()
+            isRefreshing = true
+            refreshScope.launch { kotlinx.coroutines.delay(600); isRefreshing = false }
+        }
+      ) {
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = padding.calculateTopPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp)
@@ -496,6 +512,7 @@ fun WorkerHomeScreen(
                 }
             }
         }
+      }
     }
 }
 

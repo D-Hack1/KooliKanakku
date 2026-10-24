@@ -308,6 +308,9 @@ class ConnectViewModel(
 
     fun nearbyWorkersFlow() = workers.nearbyOpenWorkers(listOfNotNull(ownerGeohash))
 
+    /** Pull-to-refresh hook for the list screens - forces every active polling flow to re-fetch now. */
+    fun refreshNow() = ConnectBackend.refreshNow()
+
     suspend fun workerCard(uid: String) = workers.cardFor(uid)
 
     /** Unlike [workerCard] (which only returns a row when the worker is currently open for work),

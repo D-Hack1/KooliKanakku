@@ -4,6 +4,7 @@ import android.content.Context
 import android.net.Uri
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
+import androidx.camera.core.Camera
 import androidx.camera.core.CameraSelector
 import androidx.camera.core.ImageCapture
 import androidx.camera.core.ImageCaptureException
@@ -13,6 +14,7 @@ import androidx.camera.view.PreviewView
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
+import androidx.compose.foundation.gestures.detectTransformGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -44,6 +46,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLifecycleOwner
 import androidx.compose.ui.unit.dp
@@ -134,6 +137,11 @@ fun CameraCaptureScreen(
             .setCaptureMode(ImageCapture.CAPTURE_MODE_MAXIMIZE_QUALITY)
             .build()
     }
+    // Holds the bound Camera once CameraX finishes binding, so the pinch gesture below can read its
+    // real zoom range and drive it - the standard way to move smoothly from wide to telephoto
+    // framing on a single preview (CameraX reports this as one continuous zoom ratio even on
+    // devices with multiple physical lenses; it switches lenses internally without any visible cut).
+    var boundCamera by remember { mutableStateOf<Camera?>(null) }
 
     val cameraExecutor = remember { Executors.newSingleThreadExecutor() }
     DisposableEffect(Unit) {
@@ -146,7 +154,19 @@ fun CameraCaptureScreen(
         // surprise crop after the fact. PreviewView's default FILL_CENTER scale center-crops into
         // this square exactly the way the post-capture crop does.
         AndroidView(
-            modifier = Modifier.fillMaxWidth().aspectRatio(1f).align(Alignment.Center),
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(1f)
+                .align(Alignment.Center)
+                .pointerInput(boundCamera) {
+                    val camera = boundCamera ?: return@pointerInput
+                    detectTransformGestures { _, _, zoomChange, _ ->
+                        val zoomState = camera.cameraInfo.zoomState.value ?: return@detectTransformGestures
+                        val newRatio = (zoomState.zoomRatio * zoomChange)
+                            .coerceIn(zoomState.minZoomRatio, zoomState.maxZoomRatio)
+                        camera.cameraControl.setZoomRatio(newRatio)
+                    }
+                },
             factory = { ctx ->
                 val previewView = PreviewView(ctx)
                 val cameraProviderFuture = ProcessCameraProvider.getInstance(ctx)
@@ -158,7 +178,7 @@ fun CameraCaptureScreen(
                     val cameraSelector = CameraSelector.DEFAULT_BACK_CAMERA
                     try {
                         cameraProvider.unbindAll()
-                        cameraProvider.bindToLifecycle(
+                        boundCamera = cameraProvider.bindToLifecycle(
                             lifecycleOwner,
                             cameraSelector,
                             preview,

@@ -78,6 +78,38 @@ import java.util.Locale
 
 private fun formatHours(minutes: Double): String = String.format(Locale.US, "%.1f", minutes / 60.0)
 
+/** [android.content.Context] from LocalContext.current can be a ContextThemeWrapper (or other
+ * ContextWrapper) around the real Activity rather than the Activity itself, depending on how the
+ * theme is applied - a plain `as? Activity` cast on it silently fails (no crash, just does nothing),
+ * so this walks the wrapper chain to find the real one. */
+private tailrec fun android.content.Context.findActivity(): android.app.Activity? = when (this) {
+    is android.app.Activity -> this
+    is android.content.ContextWrapper -> baseContext.findActivity()
+    else -> null
+}
+
+/** Home screens (Worker Home, Nearby Workers) sit at the root of the back stack - pressing system
+ * back there used to exit the app on a single tap. This requires a second tap within 2s instead,
+ * with a toast on the first one, the standard Android "press back again to exit" pattern. */
+@Composable
+private fun ExitOnDoubleBackHandler() {
+    val context = androidx.compose.ui.platform.LocalContext.current
+    val scope = androidx.compose.runtime.rememberCoroutineScope()
+    var armed by androidx.compose.runtime.remember { mutableStateOf(false) }
+    androidx.activity.compose.BackHandler(enabled = true) {
+        if (armed) {
+            context.findActivity()?.finish()
+        } else {
+            armed = true
+            android.widget.Toast.makeText(context, "Press back again to exit", android.widget.Toast.LENGTH_SHORT).show()
+            scope.launch {
+                delay(2000)
+                armed = false
+            }
+        }
+    }
+}
+
 object Routes {
     const val WELCOME = "welcome"
     const val ROLE_SELECT = "role_select"
@@ -235,25 +267,16 @@ fun AppNavGraph(
             val room = vm.job?.rooms?.find { it.id == roomId } ?: return@composable
             val context = LocalContext.current
 
-            val onWide = rememberCameraFallbackLauncher(
-                role = PhotoRole.WIDE,
-                onPhotoCaptured = { vm.addPhoto(roomId, it) },
-                onError = { vm.onCaptureError(it) }
-            )
-            val onTough = rememberCameraFallbackLauncher(
-                role = PhotoRole.TOUGHEST,
-                onPhotoCaptured = { vm.addPhoto(roomId, it) },
-                onError = { vm.onCaptureError(it) }
-            )
-            var liveMeasureTarget by remember { mutableStateOf<CaptureTarget?>(null) }
+            // Every in-room shot (wide, toughest-spot, and both measure shots) goes through the
+            // same live CameraX viewfinder below, framed to the same 1:1 square the saved photo is
+            // cropped to - so what's framed live is exactly what gets kept, for every shot type,
+            // not just the measure ones. (The system-camera fallback can't offer this: its preview
+            // is a separate app with no way for us to constrain its framing.)
+            var liveCameraTarget by remember { mutableStateOf<CaptureTarget?>(null) }
             var confirmReanalyze by remember { mutableStateOf(false) }
 
             fun launchFor(target: CaptureTarget) {
-                when (target) {
-                    CaptureTarget.WIDE -> onWide()
-                    CaptureTarget.TOUGHEST -> onTough()
-                    CaptureTarget.LENGTH, CaptureTarget.WIDTH -> liveMeasureTarget = target
-                }
+                liveCameraTarget = target
             }
 
             var pendingCaptureTarget by remember { mutableStateOf<CaptureTarget?>(null) }
@@ -281,15 +304,20 @@ fun AppNavGraph(
                 }
             }
 
-            // Measure shots use the live CameraX viewfinder so each photo carries the gravity-sensor angle.
-            val liveTarget = liveMeasureTarget
+            val liveTarget = liveCameraTarget
             if (liveTarget != null) {
-                androidx.activity.compose.BackHandler { liveMeasureTarget = null }
+                androidx.activity.compose.BackHandler { liveCameraTarget = null }
+                val liveRole = when (liveTarget) {
+                    CaptureTarget.WIDE -> PhotoRole.WIDE
+                    CaptureTarget.TOUGHEST -> PhotoRole.TOUGHEST
+                    CaptureTarget.LENGTH -> PhotoRole.MEASURE_LENGTH
+                    CaptureTarget.WIDTH -> PhotoRole.MEASURE_WIDTH
+                }
                 com.koolikanaku.capture.CameraCaptureScreen(
-                    role = if (liveTarget == CaptureTarget.LENGTH) PhotoRole.MEASURE_LENGTH else PhotoRole.MEASURE_WIDTH,
+                    role = liveRole,
                     holdHeightM = vm.job?.holdHeightM,
-                    onPhotoCaptured = { vm.addPhoto(roomId, it); liveMeasureTarget = null },
-                    onError = { vm.onCaptureError(it); liveMeasureTarget = null }
+                    onPhotoCaptured = { vm.addPhoto(roomId, it); liveCameraTarget = null },
+                    onError = { vm.onCaptureError(it); liveCameraTarget = null }
                 )
                 return@composable
             }
@@ -419,11 +447,17 @@ fun AppNavGraph(
                 stageIndex = 2
             }
 
+            val analysisIsDone = stageIndex >= stageLabels.lastIndex
             AnalyzingScreen(
                 stages = stageLabels.mapIndexed { i, label ->
-                    AnalysisStageUi(label = label, done = i < stageIndex, current = i == stageIndex, durationText = "")
+                    // The last stage ("Ready") used to sit at i == stageIndex forever once reached,
+                    // which read as `current` (spinner) and never `done` (checkmark) - nothing ever
+                    // advances stageIndex past it. Once analysis is actually finished, every stage up
+                    // to and including the current one is done, not just stages strictly before it.
+                    val done = i < stageIndex || (analysisIsDone && i == stageIndex)
+                    AnalysisStageUi(label = label, done = done, current = i == stageIndex && !done, durationText = "")
                 },
-                isDone = stageIndex >= stageLabels.lastIndex,
+                isDone = analysisIsDone,
                 errorText = vm.analysisError,
                 onReviewRoom = {
                     // Only drop the Analyzing screen itself; keep Room Capture on the stack so the
@@ -936,6 +970,7 @@ fun AppNavGraph(
                 LaunchedEffect(Unit) { navController.navigate(Routes.WELCOME) { popUpTo(0) } }
                 return@composable
             }
+            ExitOnDoubleBackHandler()
             val allBookings by cvm.bookingsForUser().collectAsState(initial = emptyList())
             val incoming = allBookings.filter { it.status == BookingStatus.REQUESTED }
             val active = allBookings.firstOrNull { it.status in setOf(BookingStatus.ACCEPTED, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS) }
@@ -961,6 +996,7 @@ fun AppNavGraph(
                     navController.navigate(Routes.SETUP)
                 },
                 onSeeAllRequests = { navController.navigate(Routes.REQUEST_INBOX) },
+                onRefresh = { cvm.refreshNow() },
                 onViewMyRatings = { navController.navigate(Routes.WORKER_RATINGS) },
                 onSignOut = {
                     cvm.signOut()
@@ -1020,6 +1056,7 @@ fun AppNavGraph(
 
         composable(Routes.NEARBY_WORKERS) {
             val context = LocalContext.current
+            ExitOnDoubleBackHandler()
             val locationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
                 contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
             ) { cvm.resolveOwnerArea(context) }
@@ -1048,6 +1085,7 @@ fun AppNavGraph(
                 },
                 active = activeBooking,
                 onOpenBooking = { navController.navigate(Routes.bookingStatus(it)) },
+                onRefresh = { cvm.refreshNow() },
                 onViewHiredWorkers = { navController.navigate(Routes.HIRED_WORKERS) },
                 onSignOut = {
                     cvm.signOut()

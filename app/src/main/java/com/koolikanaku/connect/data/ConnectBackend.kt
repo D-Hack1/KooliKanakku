@@ -23,4 +23,9 @@ object ConnectBackend {
             DemoConnectRepository -> DemoConnectRepository.init(context)
         }
     }
+
+    /** Pull-to-refresh hook. The demo backend is StateFlow-backed (never stale), so this is a no-op there. */
+    fun refreshNow() {
+        if (active === SupabaseConnectRepository) SupabaseConnectRepository.refreshNow()
+    }
 }

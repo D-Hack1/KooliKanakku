@@ -28,14 +28,13 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
-import com.koolikanaku.ui.components.OfflineBadge
 
 /** One pipeline stage shown in the Analyzing checklist (plan.md Section 4). */
 data class AnalysisStageUi(val label: String, val done: Boolean, val current: Boolean, val durationText: String)
 
 /**
  * Analyzing screen: a progress checklist over the room's photos (detection, stain check,
- * merge) with an always-visible Offline badge, then a hand-off to Room Confirm once done.
+ * merge), then a hand-off to Room Confirm once done.
  */
 @Composable
 fun AnalyzingScreen(
@@ -52,10 +51,7 @@ fun AnalyzingScreen(
                 .padding(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding() + 24.dp, bottom = padding.calculateBottomPadding() + 16.dp),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text(stringResource(R.string.analyzing_title), style = MaterialTheme.typography.headlineMedium)
-                OfflineBadge()
-            }
+            Text(stringResource(R.string.analyzing_title), style = MaterialTheme.typography.headlineMedium)
 
             Text(
                 stringResource(R.string.analyzing_comparing),

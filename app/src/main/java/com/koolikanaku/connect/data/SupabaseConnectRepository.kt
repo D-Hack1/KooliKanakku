@@ -309,6 +309,9 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
     private val refreshNow = MutableSharedFlow<Unit>(extraBufferCapacity = 8)
     private fun triggerRefresh() { refreshNow.tryEmit(Unit) }
 
+    /** Public hook for a manual "pull to refresh" gesture - same mechanism as [triggerRefresh]. */
+    fun refreshNow() { refreshNow.tryEmit(Unit) }
+
     private fun <T> pollingFlow(fetch: suspend () -> T): Flow<T> = flow {
         while (true) {
             runCatching { fetch() }.onSuccess { emit(it) }

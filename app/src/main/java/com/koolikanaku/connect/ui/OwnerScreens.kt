@@ -35,7 +35,11 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.setValue
+import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
@@ -50,6 +54,7 @@ import com.koolikanaku.ui.components.LanguageToggle
 import com.koolikanaku.ui.t
 
 /** extra_feature.md Section 9: "Nearby workers (owner)" - sorted by trust/distance, with an empty state. */
+@OptIn(androidx.compose.material3.ExperimentalMaterial3Api::class)
 @Composable
 fun NearbyWorkersScreen(
     areaLabel: String?,
@@ -61,6 +66,7 @@ fun NearbyWorkersScreen(
      * reachable from the owner's side as the worker's, not only findable via booking history. */
     active: Booking? = null,
     onOpenBooking: (String) -> Unit = {},
+    onRefresh: () -> Unit = {},
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     onViewHiredWorkers: () -> Unit = {},
@@ -68,7 +74,17 @@ fun NearbyWorkersScreen(
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    var isRefreshing by remember { mutableStateOf(false) }
+    val refreshScope = rememberCoroutineScope()
     Scaffold(modifier = modifier) { padding ->
+      androidx.compose.material3.pulltorefresh.PullToRefreshBox(
+        isRefreshing = isRefreshing,
+        onRefresh = {
+            onRefresh()
+            isRefreshing = true
+            refreshScope.launch { kotlinx.coroutines.delay(600); isRefreshing = false }
+        }
+      ) {
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = padding.calculateTopPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(14.dp)
@@ -167,6 +183,7 @@ fun NearbyWorkersScreen(
                 }
             }
         }
+      }
     }
 }
 
