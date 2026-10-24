@@ -101,6 +101,10 @@ fun BillScreen(
     beforeAfter: List<BeforeAfterUi> = emptyList(),
     onAddAfterPhoto: (String) -> Unit = {},
     onVerifyPhotos: () -> Unit = {},
+    /** Set when this job came from a Find-a-worker booking (extra_feature.md Section 8). */
+    bookingLabel: String? = null,
+    bookingFinished: Boolean = false,
+    onFinishBooking: () -> Unit = {},
     exportSheetVisible: Boolean,
     fileNameText: String,
     pdfMetaText: String,
@@ -307,6 +311,23 @@ fun BillScreen(
             item {
                 OutlinedButton(onClick = onVerifyPhotos, modifier = Modifier.fillMaxWidth()) {
                     Text(stringResource(R.string.bill_verify_button))
+                }
+            }
+
+            if (bookingLabel != null) {
+                item {
+                    Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth()) {
+                        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Text("Booked job: $bookingLabel", style = MaterialTheme.typography.titleMedium)
+                            Text(
+                                "Finishing sends only the bill total and photo hashes back to the booking - never the photos themselves. That's what lets the rating be marked verified.",
+                                style = MaterialTheme.typography.bodySmall
+                            )
+                            Button(onClick = onFinishBooking, enabled = !bookingFinished, modifier = Modifier.fillMaxWidth().height(48.dp)) {
+                                Text(if (bookingFinished) "Booking finished" else "Finish the booking")
+                            }
+                        }
+                    }
                 }
             }
 

@@ -10,9 +10,16 @@
         android:required="false" />
 
     <uses-permission android:name="android.permission.CAMERA" />
-    <uses-permission
-        android:name="android.permission.INTERNET"
-        tools:node="remove" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
+    <!--
+      Find-a-worker (extra_feature.md) now talks to Supabase, so INTERNET is genuinely needed.
+      The "works in Airplane Mode" claim is retired for the app as a whole and replaced by
+      OfflineCoreGuardTest + the Section 3.3 pitch line: "the estimate and evidence engine has no
+      network code and works in Airplane Mode" - true of ai/domain/capture/export specifically,
+      never of the app as a whole anymore. Photos and job data still never leave the device
+      (Section 6.1): only profile, coarse location, and booking/evidence-summary fields do.
+    -->
+    <uses-permission android:name="android.permission.INTERNET" />
 
     <application
         android:allowBackup="true"

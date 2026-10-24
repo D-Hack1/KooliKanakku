@@ -1,7 +1,9 @@
 package com.koolikanaku.ui.screens
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -11,23 +13,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.House
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -42,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
 import com.koolikanaku.domain.AppMode
 import com.koolikanaku.ui.AppLanguage
+import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
 
 private data class PaceOption(val factor: Double, val labelRes: Int)
 private val PACE_OPTIONS = listOf(
@@ -111,9 +110,22 @@ fun SetupScreen(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Column {
-                        Text("KooliKanaku", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-                        Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Surface(
+                            shape = RoundedCornerShape(14.dp),
+                            color = androidx.compose.ui.graphics.Color(0xFF15110E),
+                            modifier = Modifier.size(58.dp)
+                        ) {
+                            Image(
+                                painter = painterResource(R.drawable.app_logo),
+                                contentDescription = stringResource(R.string.app_name),
+                                modifier = Modifier.fillMaxSize().padding(8.dp)
+                            )
+                        }
+                        Column {
+                            Text("KooliKanaku", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
+                            Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleLarge, color = MaterialTheme.colorScheme.primary)
+                        }
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         LanguageToggle(language = language, onLanguageChange = onLanguageChange)
@@ -229,32 +241,6 @@ fun SetupScreen(
     }
 }
 
-@Composable
-private fun DarkModeToggle(darkTheme: Boolean, onToggle: () -> Unit) {
-    IconButton(onClick = onToggle) {
-        Icon(
-            imageVector = if (darkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-            contentDescription = if (darkTheme) stringResource(R.string.setup_light_mode) else stringResource(R.string.setup_dark_mode),
-            tint = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
-private fun LanguageToggle(language: AppLanguage, onLanguageChange: (AppLanguage) -> Unit) {
-    SingleChoiceSegmentedButtonRow {
-        SegmentedButton(
-            selected = language == AppLanguage.EN,
-            onClick = { onLanguageChange(AppLanguage.EN) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-        ) { Text(stringResource(R.string.language_english_short)) }
-        SegmentedButton(
-            selected = language == AppLanguage.ML,
-            onClick = { onLanguageChange(AppLanguage.ML) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-        ) { Text(stringResource(R.string.language_malayalam_short)) }
-    }
-}
 
 @Composable
 private fun ModeCard(

@@ -78,7 +78,9 @@ data class Job(
     val hourlyRateInr: Double,
     val paceFactor: Double,
     val holdHeightM: Float,
-    val rooms: List<RoomEntry> = emptyList()
+    val rooms: List<RoomEntry> = emptyList(),
+    /** Set when this job was started from a Find-a-worker booking hand-off. Null for a standalone offline job. */
+    val bookingId: String? = null
 )
 
 data class MinMax(val low: Double, val high: Double)
