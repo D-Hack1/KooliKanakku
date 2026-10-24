@@ -20,6 +20,8 @@ interface AuthRepository {
     suspend fun signIn(phone: String, pin: String): Result<ConnectUser>
     fun currentUser(): ConnectUser?
     fun signOut()
+    /** True if [phone] already has an account, so the sign-up form can point the user to Sign in instead. */
+    suspend fun phoneExists(phone: String): Boolean
 }
 
 interface WorkerRepository {

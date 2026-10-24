@@ -80,6 +80,7 @@ fun WelcomeSignInScreen(
     nameText: String,
     onNameChange: (String) -> Unit,
     error: String?,
+    phoneAlreadyRegistered: Boolean = false,
     onSubmit: () -> Unit,
     onUseWithoutAccount: () -> Unit,
     language: AppLanguage = AppLanguage.EN,
@@ -120,8 +121,20 @@ fun WelcomeSignInScreen(
                             )
                         }
                         Spacer(modifier = Modifier.height(18.dp))
-                        Text("KooliKanaku", style = MaterialTheme.typography.headlineMedium, color = MaterialTheme.colorScheme.primary)
-                        Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary)
+                        Text(
+                            "KooliKanaku",
+                            style = MaterialTheme.typography.headlineMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                        Text(
+                            "കൂലിക്കണക്ക്",
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.primary,
+                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                            modifier = Modifier.fillMaxWidth()
+                        )
                     }
                 }
 
@@ -158,6 +171,25 @@ fun WelcomeSignInScreen(
                                     singleLine = true,
                                     modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp)
                                 )
+
+                                AnimatedVisibility(
+                                    visible = isSignUp && phoneAlreadyRegistered,
+                                    enter = fadeIn(tween(200)) + expandVertically(tween(200)),
+                                    exit = fadeOut(tween(150)) + shrinkVertically(tween(150))
+                                ) {
+                                    Surface(
+                                        shape = RoundedCornerShape(12.dp),
+                                        color = MaterialTheme.colorScheme.primaryContainer,
+                                        modifier = Modifier.fillMaxWidth().padding(bottom = 14.dp).clickable(onClick = onToggleMode)
+                                    ) {
+                                        Text(
+                                            t(ml, "This number already has an account. Tap to sign in.", "ഈ നമ്പറിന് ഇതിനകം അക്കൗണ്ട് ഉണ്ട്. സൈൻ ഇൻ ചെയ്യാൻ ടാപ്പ് ചെയ്യുക."),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                                        )
+                                    }
+                                }
+
                                 OutlinedTextField(
                                     value = pinText, onValueChange = onPinChange,
                                     label = { Text(if (isSignUp) t(ml, "Create a 6-digit PIN", "6 അക്ക പിൻ ഉണ്ടാക്കുക") else t(ml, "6-digit PIN", "6 അക്ക പിൻ")) },
