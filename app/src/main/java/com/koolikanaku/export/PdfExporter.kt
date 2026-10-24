@@ -390,6 +390,14 @@ object PdfExporter {
                 canvas?.drawText(line, MARGIN, currentY, subTitlePaint)
                 currentY += 12f
             }
+            // Bill fingerprint (extra_feature.md Section 16): a SHA-256 over the totals and every photo
+            // hash above, so either side can recompute it from this PDF and check it against the booking.
+            ensureSpace(24f)
+            currentY += 4f
+            canvas?.drawText("Bill fingerprint (SHA-256 of totals + every photo hash above):", MARGIN, currentY, bodyBoldPaint)
+            currentY += 10f
+            canvas?.drawText(com.koolikanaku.domain.BillFingerprint.compute(job, quote), MARGIN + 8f, currentY, hashMonoPaint)
+            currentY += 12f
         }
     }
 }

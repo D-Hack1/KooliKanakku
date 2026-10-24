@@ -23,8 +23,23 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import androidx.compose.runtime.collectAsState
 import com.koolikanaku.capture.rememberCameraFallbackLauncher
+import com.koolikanaku.connect.ConnectViewModel
+import com.koolikanaku.connect.model.BookingStatus
+import com.koolikanaku.connect.model.EvidenceSummary
+import com.koolikanaku.connect.model.Role
+import com.koolikanaku.connect.ui.BookingStatusScreen
+import com.koolikanaku.connect.ui.NearbyWorkersScreen
+import com.koolikanaku.connect.ui.RateWorkerScreen
+import com.koolikanaku.connect.ui.RequestInboxScreen
+import com.koolikanaku.connect.ui.RoleSelectScreen
+import com.koolikanaku.connect.ui.WelcomeSignInScreen
+import com.koolikanaku.connect.ui.WorkerDetailScreen
+import com.koolikanaku.connect.ui.WorkerHomeScreen
+import com.koolikanaku.connect.ui.WorkerProfileScreen
 import com.koolikanaku.domain.AppMode
+import com.koolikanaku.domain.BillFingerprint
 import com.koolikanaku.domain.PhotoRole
 import com.koolikanaku.domain.PricingEngine
 import com.koolikanaku.domain.RoomType
@@ -61,6 +76,19 @@ import java.util.Locale
 private fun formatHours(minutes: Double): String = String.format(Locale.US, "%.1f", minutes / 60.0)
 
 object Routes {
+    const val WELCOME = "welcome"
+    const val ROLE_SELECT = "role_select"
+    const val WORKER_PROFILE = "worker_profile"
+    const val WORKER_HOME = "worker_home"
+    const val REQUEST_INBOX = "request_inbox"
+    const val NEARBY_WORKERS = "nearby_workers"
+    const val WORKER_DETAIL = "worker_detail/{workerId}"
+    fun workerDetail(workerId: String) = "worker_detail/$workerId"
+    const val BOOKING_STATUS = "booking_status/{bookingId}"
+    fun bookingStatus(bookingId: String) = "booking_status/$bookingId"
+    const val RATE_WORKER = "rate_worker/{bookingId}"
+    fun rateWorker(bookingId: String) = "rate_worker/$bookingId"
+
     const val SETUP = "setup"
     const val JOB_HUB = "job_hub"
     const val ROOM_CAPTURE = "room_capture/{roomId}"
@@ -76,14 +104,16 @@ object Routes {
 @Composable
 fun AppNavGraph(
     navController: NavHostController = rememberNavController(),
-    vm: AppViewModel = viewModel()
+    vm: AppViewModel = viewModel(),
+    cvm: ConnectViewModel = viewModel()
 ) {
     val storageContext = LocalContext.current
     remember(vm) { vm.attachStorage(storageContext) }   // restore a saved job before any screen reads state
+    remember(cvm) { cvm.attach(storageContext) }
 
     NavHost(
         navController = navController,
-        startDestination = Routes.SETUP,
+        startDestination = Routes.WELCOME,
         enterTransition = { slideInHorizontally(tween(260)) { it / 4 } + fadeIn(tween(260)) },
         exitTransition = { fadeOut(tween(180)) },
         popEnterTransition = { fadeIn(tween(220)) },
@@ -109,7 +139,9 @@ fun AppNavGraph(
                     navController.navigate(if (vm.quote != null) Routes.BILL else Routes.JOB_HUB)
                 },
                 onStartJob = {
-                    vm.startJob()
+                    val bookingId = vm.pendingBookingId
+                    vm.setPendingBooking(null)
+                    vm.startJob(bookingId)
                     navController.navigate(Routes.JOB_HUB)
                 }
             )
@@ -470,6 +502,7 @@ fun AppNavGraph(
             val jobQuote = vm.quote
             var exportSheetVisible by remember { mutableStateOf(false) }
             var lastPdfUri by remember { mutableStateOf<android.net.Uri?>(null) }
+            var finishedBookingIds by remember { mutableStateOf(setOf<String>()) }
 
             var pendingAfterRoom by remember { mutableStateOf<String?>(null) }
             val afterLauncher = rememberCameraFallbackLauncher(
@@ -609,6 +642,22 @@ fun AppNavGraph(
                     lastPdfUri?.let { PdfExporter.sharePdf(context, it) }
                 },
                 onDismissExportSheet = { exportSheetVisible = false },
+                bookingLabel = job.bookingId?.let { "#" + it.takeLast(6) },
+                bookingFinished = job.bookingId != null && job.bookingId in finishedBookingIds,
+                onFinishBooking = {
+                    val bookingId = job.bookingId ?: return@BillScreen
+                    val summary = EvidenceSummary(
+                        billFingerprint = BillFingerprint.compute(job, jobQuote),
+                        totalPriceLowInr = jobQuote.totalPriceInr.low,
+                        totalPriceHighInr = jobQuote.totalPriceInr.high,
+                        roomCount = job.rooms.size,
+                        afterPhotoHashes = job.rooms.flatMap { r -> r.photos.filter { it.role == PhotoRole.AFTER }.map { it.sha256Hash } },
+                        photoCount = job.rooms.sumOf { it.photos.size },
+                        generatedAtEpochMs = System.currentTimeMillis()
+                    )
+                    cvm.completeBooking(bookingId, summary)
+                    finishedBookingIds = finishedBookingIds + bookingId
+                },
                 onBack = { navController.popBackStack() }
             )
         }
@@ -644,6 +693,241 @@ fun AppNavGraph(
                 fileResult = fileResult,
                 onPickFile = { picker.launch(arrayOf("image/*")) },
                 onBack = { navController.popBackStack() }
+            )
+        }
+
+        // ---------------- Find a worker (extra_feature.md) ----------------
+
+        composable(Routes.WELCOME) {
+            // A previous session's sign-in survives process death (DemoConnectRepository persists it),
+            // so don't make a returning signed-in user re-enter their phone and PIN every cold start.
+            LaunchedEffect(Unit) {
+                val existing = cvm.user
+                if (existing != null) {
+                    val dest = if (existing.role == Role.WORKER) Routes.WORKER_HOME else Routes.NEARBY_WORKERS
+                    navController.navigate(dest) {
+                        popUpTo(0)
+                        launchSingleTop = true
+                    }
+                }
+            }
+            WelcomeSignInScreen(
+                isSignUp = cvm.isSignUp,
+                onToggleMode = cvm::toggleAuthMode,
+                phoneText = cvm.phoneText, onPhoneChange = cvm::changePhone,
+                pinText = cvm.pinText, onPinChange = cvm::changePin,
+                nameText = cvm.nameText, onNameChange = cvm::changeName,
+                error = cvm.authError,
+                onSubmit = {
+                    if (cvm.isSignUp) {
+                        if (cvm.validateFormForRoleSelect()) navController.navigate(Routes.ROLE_SELECT)
+                    } else {
+                        cvm.submitAuth {
+                            val dest = if (cvm.user?.role == Role.WORKER) Routes.WORKER_HOME else Routes.NEARBY_WORKERS
+                            navController.navigate(dest) {
+                                popUpTo(0)
+                                launchSingleTop = true
+                            }
+                        }
+                    }
+                },
+                onUseWithoutAccount = { navController.navigate(Routes.SETUP) },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(Routes.ROLE_SELECT) {
+            RoleSelectScreen(
+                onPick = { role ->
+                    cvm.choosePendingRole(role)
+                    cvm.submitAuth {
+                        val dest = if (role == Role.WORKER) Routes.WORKER_PROFILE else Routes.NEARBY_WORKERS
+                        navController.navigate(dest) {
+                            popUpTo(0)
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                error = cvm.authError,
+                onBack = { navController.popBackStack() },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(Routes.WORKER_PROFILE) {
+            LaunchedEffect(Unit) { cvm.loadProfileIfAny() }
+            WorkerProfileScreen(
+                languagesText = cvm.profileLanguages, onLanguagesChange = cvm::changeProfileLanguages,
+                availableServices = cvm.availableServices, selectedServices = cvm.profileServices, onToggleService = cvm::toggleProfileService,
+                rateMin = cvm.profileRateMin, onRateMinChange = cvm::changeProfileRateMin,
+                rateMax = cvm.profileRateMax, onRateMaxChange = cvm::changeProfileRateMax,
+                bio = cvm.profileBio, onBioChange = cvm::changeProfileBio,
+                onSave = {
+                    cvm.saveProfile {
+                        navController.navigate(Routes.WORKER_HOME) {
+                            popUpTo(Routes.WORKER_HOME) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(Routes.WORKER_HOME) {
+            val context = LocalContext.current
+            val user = cvm.user
+            if (user == null) {
+                LaunchedEffect(Unit) { navController.navigate(Routes.WELCOME) { popUpTo(0) } }
+                return@composable
+            }
+            val allBookings by cvm.bookingsForUser().collectAsState(initial = emptyList())
+            val incoming = allBookings.filter { it.status == BookingStatus.REQUESTED }
+            val active = allBookings.firstOrNull { it.status in setOf(BookingStatus.ACCEPTED, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS) }
+            WorkerHomeScreen(
+                workerName = user.name,
+                openForWork = cvm.openForWork,
+                onToggleOpen = { cvm.toggleOpenForWork(context) },
+                areaLabel = cvm.areaLabel,
+                incoming = incoming,
+                active = active,
+                onAccept = { cvm.respondToBooking(it, true) },
+                onDecline = { cvm.respondToBooking(it, false) },
+                onOpenBooking = { navController.navigate(Routes.bookingStatus(it)) },
+                onEditProfile = { navController.navigate(Routes.WORKER_PROFILE) },
+                onOpenEstimator = { navController.navigate(Routes.SETUP) },
+                onSeeAllRequests = { navController.navigate(Routes.REQUEST_INBOX) },
+                onSignOut = {
+                    cvm.signOut()
+                    navController.navigate(Routes.WELCOME) {
+                        popUpTo(0)
+                        launchSingleTop = true
+                    }
+                },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(Routes.REQUEST_INBOX) {
+            val allBookings by cvm.bookingsForUser().collectAsState(initial = emptyList())
+            val incoming = allBookings.filter { it.status == BookingStatus.REQUESTED }
+            RequestInboxScreen(
+                requests = incoming,
+                onAccept = { cvm.respondToBooking(it, true) },
+                onDecline = { cvm.respondToBooking(it, false) },
+                onBack = { navController.popBackStack() },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(Routes.NEARBY_WORKERS) {
+            val context = LocalContext.current
+            val locationPermissionLauncher = androidx.activity.compose.rememberLauncherForActivityResult(
+                contract = androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
+            ) { cvm.resolveOwnerArea(context) }
+            LaunchedEffect(Unit) {
+                if (com.koolikanaku.connect.location.CoarseLocation.hasPermission(context)) cvm.resolveOwnerArea(context)
+                else locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
+            }
+            val workers by cvm.nearbyWorkersFlow().collectAsState(initial = emptyList())
+            NearbyWorkersScreen(
+                areaLabel = cvm.ownerAreaLabel,
+                workers = workers,
+                onWorkerClick = { navController.navigate(Routes.workerDetail(it)) },
+                onOpenEstimator = { navController.navigate(Routes.SETUP) },
+                onSignOut = {
+                    cvm.signOut()
+                    navController.navigate(Routes.WELCOME) {
+                        popUpTo(0)
+                        launchSingleTop = true
+                    }
+                },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(
+            Routes.WORKER_DETAIL,
+            arguments = listOf(navArgument("workerId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val workerId = backStackEntry.arguments?.getString("workerId") ?: return@composable
+            var worker by remember(workerId) { mutableStateOf<com.koolikanaku.connect.model.WorkerCard?>(null) }
+            LaunchedEffect(workerId) { worker = cvm.workerCard(workerId) }
+            val recentRatings by cvm.ratingsFor(workerId).collectAsState(initial = emptyList())
+            WorkerDetailScreen(
+                worker = worker,
+                recentRatings = recentRatings,
+                onRequestBooking = { cvm.requestBooking(workerId) { bookingId -> navController.navigate(Routes.bookingStatus(bookingId)) } },
+                onBack = { navController.popBackStack() },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(
+            Routes.BOOKING_STATUS,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: return@composable
+            val context = LocalContext.current
+            val scope = androidx.compose.runtime.rememberCoroutineScope()
+            val booking by cvm.booking(bookingId).collectAsState(initial = null)
+            val meIsWorker = cvm.user?.uid == booking?.workerId
+            BookingStatusScreen(
+                booking = booking,
+                meIsWorker = meIsWorker,
+                onCall = {
+                    val myUid = cvm.user?.uid ?: return@BookingStatusScreen
+                    scope.launch {
+                        val phone = cvm.phoneFor(bookingId, myUid)
+                        context.startActivity(android.content.Intent(android.content.Intent.ACTION_DIAL, android.net.Uri.parse("tel:$phone")))
+                    }
+                },
+                onArrived = { cvm.setBookingStatus(bookingId, BookingStatus.ARRIVED) },
+                onStartEstimate = {
+                    val b = booking ?: return@BookingStatusScreen
+                    if (meIsWorker) {
+                        vm.changeMode(AppMode.WORKER_ESTIMATE)
+                        cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                    } else {
+                        vm.changeMode(AppMode.OWNER_QUOTE)
+                    }
+                    vm.setPendingBooking(bookingId)
+                    cvm.setBookingStatus(bookingId, BookingStatus.IN_PROGRESS)
+                    navController.navigate(Routes.SETUP)
+                },
+                onCancel = { cvm.cancelBooking(bookingId, "Cancelled by ${if (meIsWorker) "worker" else "owner"}") },
+                onRate = { navController.navigate(Routes.rateWorker(bookingId)) },
+                onBack = { navController.popBackStack() },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+
+        composable(
+            Routes.RATE_WORKER,
+            arguments = listOf(navArgument("bookingId") { type = NavType.StringType })
+        ) { backStackEntry ->
+            val bookingId = backStackEntry.arguments?.getString("bookingId") ?: return@composable
+            val booking by cvm.booking(bookingId).collectAsState(initial = null)
+            var stars by remember { mutableStateOf(0) }
+            var selectedTags by remember { mutableStateOf(setOf<String>()) }
+            var comment by remember { mutableStateOf("") }
+            RateWorkerScreen(
+                workerName = booking?.workerName ?: "worker",
+                stars = stars, onStarsChange = { stars = it },
+                availableTags = com.koolikanaku.connect.model.ConnectConstants.RATING_TAGS,
+                selectedTags = selectedTags, onToggleTag = { selectedTags = if (it in selectedTags) selectedTags - it else selectedTags + it },
+                comment = comment, onCommentChange = { comment = it },
+                willBeVerified = booking?.evidence != null,
+                onSubmit = {
+                    cvm.submitRating(bookingId, stars, selectedTags.toList(), comment) {
+                        navController.navigate(Routes.NEARBY_WORKERS) {
+                            popUpTo(Routes.NEARBY_WORKERS) { inclusive = true }
+                            launchSingleTop = true
+                        }
+                    }
+                },
+                darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
     }

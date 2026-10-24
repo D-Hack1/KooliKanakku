@@ -19,18 +19,12 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.CleaningServices
-import androidx.compose.material.icons.outlined.DarkMode
 import androidx.compose.material.icons.outlined.House
-import androidx.compose.material.icons.outlined.LightMode
 import androidx.compose.material3.Button
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -45,6 +39,8 @@ import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
 import com.koolikanaku.domain.AppMode
 import com.koolikanaku.ui.AppLanguage
+import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
 
 private data class PaceOption(val factor: Double, val labelRes: Int)
 private val PACE_OPTIONS = listOf(
@@ -245,32 +241,6 @@ fun SetupScreen(
     }
 }
 
-@Composable
-private fun DarkModeToggle(darkTheme: Boolean, onToggle: () -> Unit) {
-    IconButton(onClick = onToggle) {
-        Icon(
-            imageVector = if (darkTheme) Icons.Outlined.LightMode else Icons.Outlined.DarkMode,
-            contentDescription = if (darkTheme) stringResource(R.string.setup_light_mode) else stringResource(R.string.setup_dark_mode),
-            tint = MaterialTheme.colorScheme.primary
-        )
-    }
-}
-
-@Composable
-private fun LanguageToggle(language: AppLanguage, onLanguageChange: (AppLanguage) -> Unit) {
-    SingleChoiceSegmentedButtonRow {
-        SegmentedButton(
-            selected = language == AppLanguage.EN,
-            onClick = { onLanguageChange(AppLanguage.EN) },
-            shape = SegmentedButtonDefaults.itemShape(index = 0, count = 2)
-        ) { Text(stringResource(R.string.language_english_short)) }
-        SegmentedButton(
-            selected = language == AppLanguage.ML,
-            onClick = { onLanguageChange(AppLanguage.ML) },
-            shape = SegmentedButtonDefaults.itemShape(index = 1, count = 2)
-        ) { Text(stringResource(R.string.language_malayalam_short)) }
-    }
-}
 
 @Composable
 private fun ModeCard(

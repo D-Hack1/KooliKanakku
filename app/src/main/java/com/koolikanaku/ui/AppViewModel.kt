@@ -63,6 +63,11 @@ class AppViewModel : ViewModel() {
     var darkTheme by mutableStateOf(false)
         private set
 
+    /** Set right before navigating to Setup from a booking hand-off (extra_feature.md Section 8); consumed by startJob(). */
+    var pendingBookingId by mutableStateOf<String?>(null)
+        private set
+    fun setPendingBooking(bookingId: String?) { pendingBookingId = bookingId }
+
     fun changeMode(value: AppMode) { mode = value; persist() }
     fun changeLanguage(value: AppLanguage) { language = value; persist() }
     fun changeRateText(value: String) { rateText = value; persist() }
@@ -170,7 +175,12 @@ class AppViewModel : ViewModel() {
     fun changePresetIndex(value: Int) { presetIndex = value; persist() }
     fun clearCaptureError() { captureError = null }
 
-    fun startJob() {
+    /**
+     * [bookingId] is set when this job is a hand-off from a Find-a-worker booking
+     * (extra_feature.md Section 8): the rest of the flow runs exactly as it does for a
+     * standalone job, and the Bill screen can later attach an EvidenceSummary back to it.
+     */
+    fun startJob(bookingId: String? = null) {
         val rate = rateText.toDoubleOrNull()
             ?: if (mode == AppMode.OWNER_QUOTE) Constants.DEFAULT_MARKET_RATE_INR_PER_HR else Constants.DEFAULT_WORKER_RATE_INR_PER_HR
         val height = heightCm.toFloatOrNull()
@@ -184,7 +194,8 @@ class AppViewModel : ViewModel() {
             hourlyRateInr = rate,
             paceFactor = if (mode == AppMode.OWNER_QUOTE) 1.0 else paceFactor,
             holdHeightM = if (height != null) height * Constants.HOLD_HEIGHT_FACTOR / 100f else Constants.DEFAULT_HOLD_HEIGHT_M,
-            rooms = emptyList()
+            rooms = emptyList(),
+            bookingId = bookingId
         )
     }
 
