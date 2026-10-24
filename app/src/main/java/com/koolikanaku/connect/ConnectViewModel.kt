@@ -217,6 +217,10 @@ class ConnectViewModel(
 
     suspend fun workerCard(uid: String) = workers.cardFor(uid)
 
+    /** Unlike [workerCard] (which only returns a row when the worker is currently open for work),
+     * this reads the worker's own profile regardless of open/closed status - for "My ratings". */
+    suspend fun profileFor(uid: String): WorkerProfile? = workers.getProfile(uid)
+
     fun ratingsFor(workerId: String): Flow<List<com.koolikanaku.connect.model.Rating>> = ratings.ratingsFor(workerId)
 
     // ---- Bookings ----
