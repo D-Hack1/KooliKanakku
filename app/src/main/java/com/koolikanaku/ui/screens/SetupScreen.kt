@@ -1,8 +1,16 @@
 package com.koolikanaku.ui.screens
 
+import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.tween
+import androidx.compose.animation.fadeIn
+import androidx.compose.animation.fadeOut
+import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -117,7 +125,8 @@ fun SetupScreen(
                     ) {
                         Surface(
                             shape = RoundedCornerShape(14.dp),
-                            color = androidx.compose.ui.graphics.Color(0xFF15110E),
+                            color = if (darkTheme) Color(0xFF15110E) else Color.White,
+                            border = BorderStroke(1.dp, if (darkTheme) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outlineVariant),
                             modifier = Modifier.size(54.dp)
                         ) {
                             Image(
@@ -126,9 +135,22 @@ fun SetupScreen(
                                 modifier = Modifier.fillMaxSize().padding(8.dp)
                             )
                         }
-                        Column {
-                            Text("KooliKanaku", style = MaterialTheme.typography.headlineSmall, color = MaterialTheme.colorScheme.primary, maxLines = 1)
-                            Text("കൂലിക്കണക്ക്", style = MaterialTheme.typography.titleMedium, color = MaterialTheme.colorScheme.primary, maxLines = 1)
+                        Column(verticalArrangement = Arrangement.Center) {
+                            AnimatedContent(
+                                targetState = language,
+                                transitionSpec = {
+                                    (fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 3 })
+                                        .togetherWith(fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 3 })
+                                },
+                                label = "setup_logo_title_transition"
+                            ) { lang ->
+                                Text(
+                                    text = if (lang == AppLanguage.ML) "കൂലിക്കണക്ക്" else "KooliKanaku",
+                                    style = MaterialTheme.typography.headlineSmall,
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1
+                                )
+                            }
                         }
                     }
                     Row(

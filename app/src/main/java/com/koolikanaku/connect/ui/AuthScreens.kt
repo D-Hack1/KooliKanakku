@@ -1,5 +1,6 @@
 package com.koolikanaku.connect.ui
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
@@ -9,6 +10,9 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
+import androidx.compose.animation.slideOutVertically
+import androidx.compose.animation.togetherWith
+import androidx.compose.ui.graphics.Color
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.clickable
@@ -110,8 +114,9 @@ fun WelcomeSignInScreen(
                     Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.fillMaxWidth().padding(bottom = 40.dp)) {
                         Surface(
                             shape = RoundedCornerShape(26.dp),
-                            color = MaterialTheme.colorScheme.primaryContainer,
-                            shadowElevation = 10.dp,
+                            color = if (darkTheme) Color(0xFF15110E) else Color.White,
+                            border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                            shadowElevation = if (darkTheme) 4.dp else 6.dp,
                             modifier = Modifier.size(96.dp)
                         ) {
                             Image(
@@ -121,20 +126,22 @@ fun WelcomeSignInScreen(
                             )
                         }
                         Spacer(modifier = Modifier.height(18.dp))
-                        Text(
-                            "KooliKanaku",
-                            style = MaterialTheme.typography.headlineMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
-                        Text(
-                            "കൂലിക്കണക്ക്",
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.primary,
-                            textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-                            modifier = Modifier.fillMaxWidth()
-                        )
+                        AnimatedContent(
+                            targetState = language,
+                            transitionSpec = {
+                                (fadeIn(tween(200)) + slideInVertically(tween(200)) { it / 3 })
+                                    .togetherWith(fadeOut(tween(150)) + slideOutVertically(tween(150)) { -it / 3 })
+                            },
+                            label = "auth_logo_title_transition"
+                        ) { lang ->
+                            Text(
+                                text = if (lang == AppLanguage.ML) "കൂലിക്കണക്ക്" else "KooliKanaku",
+                                style = MaterialTheme.typography.headlineMedium,
+                                color = MaterialTheme.colorScheme.primary,
+                                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
                 }
 
