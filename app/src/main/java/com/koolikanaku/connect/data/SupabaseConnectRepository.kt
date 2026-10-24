@@ -107,6 +107,10 @@ object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepo
 
     override fun currentUser(): ConnectUser? = cachedUser
 
+    override suspend fun phoneExists(phone: String): Boolean =
+        runCatching { SupabaseHttp.rpc("phone_exists", mapOf("p_phone" to phone), expectSingleObject = false) as? Boolean }
+            .getOrNull() ?: false
+
     override fun signOut() {
         cachedUser = null
         SupabaseHttp.sessionAccessToken = null

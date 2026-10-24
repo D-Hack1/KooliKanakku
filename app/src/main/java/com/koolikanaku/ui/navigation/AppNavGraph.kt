@@ -718,6 +718,7 @@ fun AppNavGraph(
                 pinText = cvm.pinText, onPinChange = cvm::changePin,
                 nameText = cvm.nameText, onNameChange = cvm::changeName,
                 error = cvm.authError,
+                phoneAlreadyRegistered = cvm.phoneAlreadyRegistered,
                 onSubmit = {
                     if (cvm.isSignUp) {
                         if (cvm.validateFormForRoleSelect()) navController.navigate(Routes.ROLE_SELECT)

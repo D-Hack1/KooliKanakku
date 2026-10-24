@@ -48,6 +48,10 @@ class ConnectViewModel(
         private set
     var pendingRole by mutableStateOf<Role?>(null)
         private set
+    /** True once a 10-digit [phoneText] is confirmed to already have an account, so sign-up can point at Sign in instead. */
+    var phoneAlreadyRegistered by mutableStateOf(false)
+        private set
+    private var phoneCheckJob: kotlinx.coroutines.Job? = null
 
     // ---- Worker profile form ----
     var profileLanguages by mutableStateOf("")
@@ -81,10 +85,19 @@ class ConnectViewModel(
 
     val availableServices = listOf("kitchen", "bathroom", "bedroom", "living room", "general")
 
-    fun changePhone(v: String) { phoneText = v.filter { it.isDigit() }.take(10) }
+    fun changePhone(v: String) {
+        phoneText = v.filter { it.isDigit() }.take(10)
+        phoneAlreadyRegistered = false
+        phoneCheckJob?.cancel()
+        if (!isSignUp || phoneText.length != 10) return
+        phoneCheckJob = viewModelScope.launch {
+            kotlinx.coroutines.delay(400)
+            phoneAlreadyRegistered = runCatching { auth.phoneExists(phoneText) }.getOrDefault(false)
+        }
+    }
     fun changePin(v: String) { pinText = v.filter { it.isDigit() }.take(6) }
     fun changeName(v: String) { nameText = v }
-    fun toggleAuthMode() { isSignUp = !isSignUp; authError = null }
+    fun toggleAuthMode() { isSignUp = !isSignUp; authError = null; phoneAlreadyRegistered = false }
     fun choosePendingRole(role: Role) { pendingRole = role }
 
     /** Validates the sign-up form before bouncing to Role select (the account isn't created until a role is picked there). */

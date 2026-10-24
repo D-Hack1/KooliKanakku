@@ -119,6 +119,15 @@ grant select on open_workers to anon, authenticated;
 -- None of these take an actor/owner/uid parameter for "who is asking" anymore - every one reads
 -- auth.uid(), which PostgREST sets from the caller's verified Supabase Auth JWT.
 
+-- Lets the sign-up form tell the user "this number already has an account" before they submit,
+-- without exposing anything about the account itself (no phone/profile data leaves this function -
+-- Section 5.1 "Phone numbers ... are never directly selectable by anon").
+create or replace function phone_exists(p_phone text)
+returns boolean language sql security definer as $$
+    select exists(select 1 from profiles where phone = p_phone);
+$$;
+grant execute on function phone_exists(text) to anon, authenticated;
+
 create or replace function complete_signup(p_phone text, p_role text, p_name text)
 returns profiles language plpgsql security definer as $$
 declare p profiles;

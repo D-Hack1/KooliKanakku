@@ -101,6 +101,8 @@ object DemoConnectRepository : AuthRepository, WorkerRepository, BookingReposito
 
     override fun currentUser(): ConnectUser? = store.currentUid?.let { store.users[it] }
 
+    override suspend fun phoneExists(phone: String): Boolean = store.users.values.any { it.phone == phone }
+
     override fun signOut() {
         mutate { it.copy(currentUid = null) }
     }
