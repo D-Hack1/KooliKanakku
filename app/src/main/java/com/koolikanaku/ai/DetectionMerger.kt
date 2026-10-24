@@ -16,7 +16,19 @@ object DetectionMerger {
     val SECONDARY_CLUTTER: Set<String> = setOf(
         "mug", "plate", "footwear", "toy", "towel", "plastic bag", "tin can",
         "clothing", "box", "container", "pillow", "kitchen utensil",
-        "waste container", "paper towel", "toilet paper", "luggage and bags"
+        "waste container", "paper towel", "toilet paper", "luggage and bags",
+        // Clothes & Personal Accessories
+        "shirt", "trousers", "jeans", "dress", "skirt", "coat", "jacket", "sock",
+        "sandal", "boot", "hat", "glove", "belt", "scarf", "sunglasses", "glasses",
+        // Kitchen Utensils & Mess
+        "frying pan", "wok", "pressure cooker", "kettle", "teapot", "cutting board",
+        "serving tray", "mixing bowl", "saucer", "jug", "chopsticks", "pitcher (container)",
+        // Toiletries & Hygiene
+        "soap dispenser", "cosmetics", "perfume", "hair spray", "diaper",
+        // Paper & Stationery
+        "pen", "pencil case", "envelope", "calculator", "ruler",
+        // Toys & Living Clutter
+        "doll", "balloon", "dice", "candle", "picnic basket"
     )
 
     /** One long cabinet run or counter is seen as several boxes; checklist quantity should stay 1. */
