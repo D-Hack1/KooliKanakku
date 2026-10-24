@@ -33,7 +33,7 @@ import java.time.OffsetDateTime
 object SupabaseConnectRepository : AuthRepository, WorkerRepository, BookingRepository, RatingRepository {
 
     private const val PREFS = "connect_session_v2"
-    private const val POLL_INTERVAL_MS = 1500L
+    private const val POLL_INTERVAL_MS = 1000L
     private const val EMAIL_DOMAIN = "kooli.koolikanaku.app"
 
     private lateinit var prefs: android.content.SharedPreferences

@@ -72,32 +72,37 @@ fun NearbyWorkersScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            t(language, "Find a worker", "തൊഴിലാളിയെ കണ്ടെത്തുക"),
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-                        Text(
-                            t(
-                                language,
-                                "Open for work near ${areaLabel ?: "you"}",
-                                "${areaLabel ?: "നിങ്ങളുടെ"} സമീപം ലഭ്യമായവർ"
-                            ),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onViewHiredWorkers) { Text("People I've hired") }
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Title and the two always-compact toggles share a row - these never grow with
+                    // text length in any language, so this row can never overflow.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                t(language, "Find a worker", "തൊഴിലാളിയെ കണ്ടെത്തുക"),
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                            Text(
+                                t(
+                                    language,
+                                    "Open for work near ${areaLabel ?: "you"}",
+                                    "${areaLabel ?: "നിങ്ങളുടെ"} സമീപം ലഭ്യമായവർ"
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
                     }
+                    // Its own row, full width to itself - same reasoning as Worker Home's header.
+                    TextButton(onClick = onViewHiredWorkers) {
+                        Text(t(language, "People I've hired", "ഞാൻ ജോലിക്കെടുത്തവർ"))
                     }
                 }
             }
@@ -138,8 +143,8 @@ fun NearbyWorkersScreen(
             itemsIndexed(workers) { index, w ->
                 AnimatedVisibility(
                     visible = true,
-                    enter = fadeIn(tween(360, delayMillis = index * 50, easing = FastOutSlowInEasing)) +
-                        slideInVertically(tween(360, delayMillis = index * 50, easing = FastOutSlowInEasing)) { it / 6 }
+                    enter = fadeIn(tween(220, delayMillis = index * 25, easing = FastOutSlowInEasing)) +
+                        slideInVertically(tween(220, delayMillis = index * 25, easing = FastOutSlowInEasing)) { it / 6 }
                 ) {
                     WorkerCardRow(worker = w, language = language, onClick = { onWorkerClick(w.uid) })
                 }
@@ -305,7 +310,7 @@ fun WorkerDetailScreen(
                 itemsIndexed(recentRatings.take(5)) { index, r ->
                     AnimatedVisibility(
                         visible = true,
-                        enter = fadeIn(tween(320, delayMillis = index * 50, easing = FastOutSlowInEasing))
+                        enter = fadeIn(tween(200, delayMillis = index * 25, easing = FastOutSlowInEasing))
                     ) {
                         Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
@@ -396,8 +401,8 @@ fun HiredWorkersScreen(
             itemsIndexed(workers) { index, w ->
                 AnimatedVisibility(
                     visible = true,
-                    enter = fadeIn(tween(320, delayMillis = index * 50, easing = FastOutSlowInEasing)) +
-                        slideInVertically(tween(320, delayMillis = index * 50, easing = FastOutSlowInEasing)) { it / 6 }
+                    enter = fadeIn(tween(200, delayMillis = index * 25, easing = FastOutSlowInEasing)) +
+                        slideInVertically(tween(200, delayMillis = index * 25, easing = FastOutSlowInEasing)) { it / 6 }
                 ) {
                     Surface(
                         shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface,
@@ -460,7 +465,7 @@ fun WorkerHistoryScreen(
             itemsIndexed(bookings) { index, b ->
                 AnimatedVisibility(
                     visible = true,
-                    enter = fadeIn(tween(320, delayMillis = index * 50, easing = FastOutSlowInEasing))
+                    enter = fadeIn(tween(200, delayMillis = index * 25, easing = FastOutSlowInEasing))
                 ) {
                     Surface(
                         shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.surface,

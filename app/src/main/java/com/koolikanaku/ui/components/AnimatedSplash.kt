@@ -33,11 +33,11 @@ fun AnimatedSplash(backgroundColor: androidx.compose.ui.graphics.Color, onFinish
     val scale = remember { Animatable(0.85f) }
 
     LaunchedEffect(Unit) {
-        scale.animateTo(1f, tween(900, easing = LinearOutSlowInEasing))
+        scale.animateTo(1f, tween(500, easing = LinearOutSlowInEasing))
     }
     LaunchedEffect(Unit) {
-        progress.animateTo(1f, tween(900, easing = LinearOutSlowInEasing))
-        kotlinx.coroutines.delay(450)
+        progress.animateTo(1f, tween(500, easing = LinearOutSlowInEasing))
+        kotlinx.coroutines.delay(150)
         onFinished()
     }
 

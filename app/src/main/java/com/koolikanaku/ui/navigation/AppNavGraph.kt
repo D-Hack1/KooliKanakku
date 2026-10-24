@@ -135,10 +135,10 @@ fun AppNavGraph(
     NavHost(
         navController = navController,
         startDestination = Routes.WELCOME,
-        enterTransition = { slideInHorizontally(tween(260)) { it / 4 } + fadeIn(tween(260)) },
-        exitTransition = { fadeOut(tween(180)) },
-        popEnterTransition = { fadeIn(tween(220)) },
-        popExitTransition = { slideOutHorizontally(tween(260)) { it / 4 } + fadeOut(tween(260)) }
+        enterTransition = { slideInHorizontally(tween(190)) { it / 4 } + fadeIn(tween(190)) },
+        exitTransition = { fadeOut(tween(130)) },
+        popEnterTransition = { fadeIn(tween(160)) },
+        popExitTransition = { slideOutHorizontally(tween(190)) { it / 4 } + fadeOut(tween(190)) }
     ) {
 
         composable(Routes.SETUP) {
@@ -415,7 +415,7 @@ fun AppNavGraph(
                     android.util.Log.d("AnalyzeFlow", "Finished analyzeRoom for $roomId")
                 }
                 stageIndex = 1
-                delay(200)
+                delay(100)
                 stageIndex = 2
             }
 

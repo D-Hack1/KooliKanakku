@@ -305,31 +305,40 @@ fun WorkerHomeScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text(
-                            t(language, "Hi, $workerName", "നമസ്കാരം, $workerName"),
-                            style = MaterialTheme.typography.headlineMedium
-                        )
-                        Text(
-                            t(language, "Worker home", "തൊഴിലാളി ഹോം"),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                    // Title and the two always-compact toggles share a row - these never grow with
+                    // text length in any language, so this row can never overflow.
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                            Text(
+                                t(language, "Hi, $workerName", "നമസ്കാരം, $workerName"),
+                                style = MaterialTheme.typography.headlineMedium
+                            )
+                            Text(
+                                t(language, "Worker home", "തൊഴിലാളി ഹോം"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    // Text links get their own row, full width to themselves - Malayalam labels
+                    // ("പ്രൊഫൈൽ മാറ്റുക") run noticeably longer than their English counterparts and
+                    // used to squeeze/clip the title above when they shared a row with everything else.
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                         TextButton(onClick = onViewMyRatings) {
                             Text(t(language, "My ratings", "റേറ്റിംഗുകൾ"))
                         }
                         TextButton(onClick = onEditProfile) {
                             Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
                         }
-                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
             }
@@ -418,8 +427,8 @@ fun WorkerHomeScreen(
                 itemsIndexed(incoming.take(2)) { index, b ->
                     AnimatedVisibility(
                         visible = true,
-                        enter = fadeIn(tween(360, delayMillis = index * 60, easing = FastOutSlowInEasing)) +
-                            slideInVertically(tween(360, delayMillis = index * 60, easing = FastOutSlowInEasing)) { it / 5 }
+                        enter = fadeIn(tween(220, delayMillis = index * 30, easing = FastOutSlowInEasing)) +
+                            slideInVertically(tween(220, delayMillis = index * 30, easing = FastOutSlowInEasing)) { it / 5 }
                     ) {
                         RequestCard(
                             booking = b,
@@ -513,8 +522,8 @@ fun RequestInboxScreen(
             itemsIndexed(requests) { index, b ->
                 AnimatedVisibility(
                     visible = true,
-                    enter = fadeIn(tween(340, delayMillis = index * 50, easing = FastOutSlowInEasing)) +
-                        slideInVertically(tween(340, delayMillis = index * 50, easing = FastOutSlowInEasing)) { it / 5 }
+                    enter = fadeIn(tween(200, delayMillis = index * 25, easing = FastOutSlowInEasing)) +
+                        slideInVertically(tween(200, delayMillis = index * 25, easing = FastOutSlowInEasing)) { it / 5 }
                 ) {
                     RequestCard(
                         booking = b,
