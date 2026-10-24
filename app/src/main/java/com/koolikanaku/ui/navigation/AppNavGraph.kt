@@ -237,7 +237,7 @@ fun AppNavGraph(
                 modeLabel = if (job?.mode == AppMode.OWNER_QUOTE) (if (vm.language == AppLanguage.ML) "ഉടമ ക്വട്ടേഷൻ" else "Owner quote")
                             else (if (vm.language == AppLanguage.ML) "തൊഴിലാളി എസ്റ്റിമേറ്റ്" else "Worker estimate"),
                 rateLabel = if (vm.language == AppLanguage.ML) "₹${job?.hourlyRateInr?.toInt() ?: 0}/മണി" else "₹${job?.hourlyRateInr?.toInt() ?: 0}/hr",
-                paceLabel = if (vm.language == AppLanguage.ML) "${job?.paceFactor ?: 1.0}x വേഗത" else "${job?.paceFactor ?: 1.0}x pace",
+                paceLabel = if (job?.mode == AppMode.OWNER_QUOTE) null else (if (vm.language == AppLanguage.ML) "${job?.paceFactor ?: 1.0}x വേഗത" else "${job?.paceFactor ?: 1.0}x pace"),
                 rooms = rooms,
                 totalText = "₹${totalLow.toInt()}-₹${totalHigh.toInt()}",
                 onAddRoom = {

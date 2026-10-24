@@ -52,12 +52,6 @@ import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.components.DarkModeToggle
 import com.koolikanaku.ui.components.LanguageToggle
 
-private data class PaceOption(val factor: Double, val labelRes: Int)
-private val PACE_OPTIONS = listOf(
-    PaceOption(0.9, R.string.setup_pace_fast),
-    PaceOption(1.0, R.string.setup_pace_standard),
-    PaceOption(1.15, R.string.setup_pace_thorough)
-)
 
 /**
  * Setup screen: worker/owner mode, rate, pace, optional height, and app language.
@@ -251,24 +245,6 @@ fun SetupScreen(
                 }
             }
 
-            if (!isWorker) {
-                item {
-                    Surface(
-                        shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.primaryContainer,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outline)
-                    ) {
-                        Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Text(stringResource(R.string.setup_owner_pace_note), fontWeight = FontWeight.Bold)
-                            Text(
-                                stringResource(R.string.setup_owner_time_note),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }
@@ -313,29 +289,3 @@ private fun ModeCard(
     }
 }
 
-@Composable
-private fun PaceCard(
-    label: String,
-    multiplierText: String,
-    selected: Boolean,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Surface(
-        modifier = modifier
-            .heightIn(min = 64.dp)
-            .clickable(onClick = onClick),
-        shape = RoundedCornerShape(10.dp),
-        color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-        border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
-    ) {
-        Column(
-            modifier = Modifier.fillMaxSize().padding(horizontal = 4.dp, vertical = 6.dp),
-            verticalArrangement = Arrangement.Center,
-            horizontalAlignment = Alignment.CenterHorizontally
-        ) {
-            Text(label, style = MaterialTheme.typography.titleSmall, textAlign = TextAlign.Center, maxLines = 1)
-            Text(multiplierText, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        }
-    }
-}

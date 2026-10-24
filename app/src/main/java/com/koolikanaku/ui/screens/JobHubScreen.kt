@@ -56,7 +56,7 @@ data class RoomSummaryUi(
 fun JobHubScreen(
     modeLabel: String,
     rateLabel: String,
-    paceLabel: String,
+    paceLabel: String? = null,
     rooms: List<RoomSummaryUi>,
     totalText: String,
     onAddRoom: () -> Unit,
@@ -124,7 +124,9 @@ fun JobHubScreen(
                 ) {
                     Pill(modeLabel, filled = true)
                     Pill(rateLabel, filled = false)
-                    Pill(paceLabel, filled = false)
+                    if (!paceLabel.isNullOrBlank()) {
+                        Pill(paceLabel, filled = false)
+                    }
                 }
             }
 
