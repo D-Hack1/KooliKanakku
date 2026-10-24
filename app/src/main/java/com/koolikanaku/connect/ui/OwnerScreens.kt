@@ -17,7 +17,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -72,14 +74,19 @@ fun NearbyWorkersScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
+<<<<<<< HEAD
                 Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                     // Title and the two always-compact toggles share a row - these never grow with
                     // text length in any language, so this row can never overflow.
+=======
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+>>>>>>> c2c201e7cb09a2d8339c57167c4dc9110b899f6b
                     Row(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.CenterVertically
                     ) {
+<<<<<<< HEAD
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
                             Text(
                                 t(language, "Find a worker", "തൊഴിലാളിയെ കണ്ടെത്തുക"),
@@ -95,14 +102,44 @@ fun NearbyWorkersScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
+=======
+                        Text(
+                            t(language, "Find a worker", "തൊഴിലാളിയെ കണ്ടെത്തുക"),
+                            style = MaterialTheme.typography.headlineSmall,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+>>>>>>> c2c201e7cb09a2d8339c57167c4dc9110b899f6b
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                             LanguageToggle(language = language, onLanguageChange = onLanguageChange)
                             DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                         }
                     }
+<<<<<<< HEAD
                     // Its own row, full width to itself - same reasoning as Worker Home's header.
                     TextButton(onClick = onViewHiredWorkers) {
                         Text(t(language, "People I've hired", "ഞാൻ ജോലിക്കെടുത്തവർ"))
+=======
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            t(
+                                language,
+                                "Open for work near ${areaLabel ?: "you"}",
+                                "${areaLabel ?: "നിങ്ങളുടെ"} സമീപം ലഭ്യമായവർ"
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                        TextButton(onClick = onViewHiredWorkers) {
+                            Text(t(language, "People I've hired", "നേരത്തെ വിളിച്ചവർ"))
+                        }
+>>>>>>> c2c201e7cb09a2d8339c57167c4dc9110b899f6b
                     }
                 }
             }
@@ -327,11 +364,11 @@ fun WorkerDetailScreen(
             }
             if (showRequestButton) {
                 item {
-                    Button(onClick = onRequestBooking, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Button(onClick = onRequestBooking, modifier = Modifier.fillMaxWidth().heightIn(min = 52.dp)) {
                         Text(
-                        t(language, "Request booking (now)", "ഇപ്പോൾ ബുക്ക് ചെയ്യുക"),
-                        style = MaterialTheme.typography.titleMedium
-                    )
+                            t(language, "Request booking (now)", "ഇപ്പോൾ ബുക്ക് ചെയ്യുക"),
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
             }

@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -50,6 +51,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
 import com.koolikanaku.domain.EvidencePhoto
@@ -125,14 +127,7 @@ fun RoomCaptureScreen(
                         IconButton(onClick = onBack) {
                             Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.capture_back_to_setup))
                         }
-                        Column(modifier = Modifier.padding(top = 4.dp)) {
-                            Text(stringResource(R.string.capture_room_title, roomNumber), style = MaterialTheme.typography.headlineMedium)
-                            Text(
-                                stringResource(R.string.capture_intro),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        Text(stringResource(R.string.capture_room_title, roomNumber), style = MaterialTheme.typography.titleLarge)
                     }
                     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         LanguageToggle(language = language, onLanguageChange = onLanguageChange)
@@ -150,16 +145,16 @@ fun RoomCaptureScreen(
                             fontWeight = if (readyToAnalyze) FontWeight.SemiBold else FontWeight.Normal
                         )
                         Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                            OutlinedButton(onClick = { sheetOpen = true }, modifier = Modifier.height(54.dp)) {
+                            OutlinedButton(onClick = { sheetOpen = true }, modifier = Modifier.heightIn(min = 52.dp)) {
                                 Icon(Icons.Outlined.Add, contentDescription = null)
                                 Text(" " + stringResource(R.string.capture_photo_button))
                             }
                             Button(
                                 onClick = onAnalyzeRoom,
                                 enabled = readyToAnalyze,
-                                modifier = Modifier.weight(1f).height(54.dp)
+                                modifier = Modifier.weight(1f).heightIn(min = 52.dp)
                             ) {
-                                Text(stringResource(R.string.capture_analyze_button), style = MaterialTheme.typography.titleLarge)
+                                Text(stringResource(R.string.capture_analyze_button), style = MaterialTheme.typography.titleMedium, textAlign = TextAlign.Center)
                             }
                         }
                     }
@@ -170,6 +165,13 @@ fun RoomCaptureScreen(
                 contentPadding = PaddingValues(start = 16.dp, end = 16.dp, top = padding.calculateTopPadding() + 8.dp, bottom = padding.calculateBottomPadding() + 8.dp),
                 verticalArrangement = Arrangement.spacedBy(22.dp)
             ) {
+                item {
+                    Text(
+                        stringResource(R.string.capture_intro),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
                 item {
                     StepBlock(number = 1, done = when (sizeMethod) {
                         SizeMethod.MEASURE -> lengthShotTaken && widthShotTaken
@@ -378,13 +380,13 @@ private fun StepBlock(number: Int, done: Boolean, title: String, content: @Compo
 @Composable
 private fun MethodButton(label: String, selected: Boolean, onClick: () -> Unit, modifier: Modifier = Modifier) {
     Surface(
-        modifier = modifier.height(44.dp).clickable(onClick = onClick),
+        modifier = modifier.heightIn(min = 44.dp).clickable(onClick = onClick),
         shape = RoundedCornerShape(10.dp),
         color = if (selected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
         border = BorderStroke(if (selected) 2.dp else 1.dp, if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline)
     ) {
-        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxSize()) {
-            Text(label, style = MaterialTheme.typography.labelLarge)
+        Box(contentAlignment = Alignment.Center, modifier = Modifier.fillMaxWidth().padding(horizontal = 4.dp, vertical = 6.dp)) {
+            Text(label, style = MaterialTheme.typography.labelMedium, textAlign = TextAlign.Center, maxLines = 2)
         }
     }
 }
