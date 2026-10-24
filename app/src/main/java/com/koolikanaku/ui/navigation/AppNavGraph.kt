@@ -165,10 +165,14 @@ fun AppNavGraph(
                 val quote = job?.let { PricingEngine.quoteRoom(room, it) }
                 RoomSummaryUi(
                     id = room.id,
-                    name = "Room ${index + 1} - ${room.roomType.name.lowercase(Locale.US).replaceFirstChar { it.uppercase() }}",
-                    metaLine1 = room.dimensions?.let { "${it.computedAreaSqFt.toInt()} sq ft" } ?: "Size not set",
-                    metaLine2 = "${room.tasks.count { it.isSelected }} tasks selected",
-                    timeText = quote?.let { "${formatHours(it.expectedMinutes.low)}-${formatHours(it.expectedMinutes.high)} hr" } ?: "-",
+                    name = if (vm.language == AppLanguage.ML) "മുറി ${index + 1} - ${room.roomType.displayName(vm.language)}"
+                           else "Room ${index + 1} - ${room.roomType.name.lowercase(Locale.US).replaceFirstChar { it.uppercase() }}",
+                    metaLine1 = room.dimensions?.let {
+                        if (vm.language == AppLanguage.ML) "${it.computedAreaSqFt.toInt()} ച. അടി" else "${it.computedAreaSqFt.toInt()} sq ft"
+                    } ?: (if (vm.language == AppLanguage.ML) "വലിപ്പം നൽകിയിട്ടില്ല" else "Size not set"),
+                    metaLine2 = if (vm.language == AppLanguage.ML) "${room.tasks.count { it.isSelected }} ജോലികൾ തിരഞ്ഞെടുത്തു"
+                                else "${room.tasks.count { it.isSelected }} tasks selected",
+                    timeText = quote?.let { "${formatHours(it.expectedMinutes.low)}-${formatHours(it.expectedMinutes.high)} ${if (vm.language == AppLanguage.ML) "മണി" else "hr"}" } ?: "-",
                     payText = quote?.let { "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}" } ?: "-",
                     analyzed = (room.dimensions?.computedAreaSqFt ?: 0.0) > 0.0 && (room.photoAnalyses.isNotEmpty() || room.stain != null)
                 )
@@ -177,9 +181,10 @@ fun AppNavGraph(
             val totalHigh = job?.rooms.orEmpty().sumOf { room -> job?.let { PricingEngine.quoteRoom(room, it).priceInr.high } ?: 0.0 }
 
             JobHubScreen(
-                modeLabel = if (job?.mode == AppMode.OWNER_QUOTE) "Owner quote" else "Worker estimate",
-                rateLabel = "₹${job?.hourlyRateInr?.toInt() ?: 0}/hr",
-                paceLabel = "${job?.paceFactor ?: 1.0}x pace",
+                modeLabel = if (job?.mode == AppMode.OWNER_QUOTE) (if (vm.language == AppLanguage.ML) "ഉടമ ക്വട്ടേഷൻ" else "Owner quote")
+                            else (if (vm.language == AppLanguage.ML) "തൊഴിലാളി എസ്റ്റിമേറ്റ്" else "Worker estimate"),
+                rateLabel = if (vm.language == AppLanguage.ML) "₹${job?.hourlyRateInr?.toInt() ?: 0}/മണി" else "₹${job?.hourlyRateInr?.toInt() ?: 0}/hr",
+                paceLabel = if (vm.language == AppLanguage.ML) "${job?.paceFactor ?: 1.0}x വേഗത" else "${job?.paceFactor ?: 1.0}x pace",
                 rooms = rooms,
                 totalText = "₹${totalLow.toInt()}-₹${totalHigh.toInt()}",
                 onAddRoom = {
@@ -193,7 +198,11 @@ fun AppNavGraph(
                 canFinish = vm.allRoomsHaveSize(),
                 onFinish = {
                     if (vm.finishJob()) navController.navigate(Routes.BILL)
-                }
+                },
+                language = vm.language,
+                onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme,
+                onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
 
@@ -324,10 +333,12 @@ fun AppNavGraph(
                 enterResultText = run {
                     val l = vm.enterLengthFt.toDoubleOrNull()
                     val w = vm.enterWidthFt.toDoubleOrNull()
-                    if (l != null && w != null) "${(l * w).toInt()} sq ft" else null
+                    if (l != null && w != null) {
+                        if (vm.language == AppLanguage.ML) "${(l * w).toInt()} ച. അടി" else "${(l * w).toInt()} sq ft"
+                    } else null
                 },
                 presetIndex = vm.presetIndex,
-                presetLabels = vm.presetOptions.map { it.labelEn to it.labelEn },
+                presetLabels = vm.presetOptions.map { (if (vm.language == AppLanguage.ML) it.labelMl else it.labelEn) to it.labelEn },
                 onPresetChange = vm::changePresetIndex,
                 widePhotos = widePhotoList,
                 toughPhotos = toughPhotoList,
@@ -335,7 +346,8 @@ fun AppNavGraph(
                 canAddWide = true,
                 canAddTough = true,
                 readyToAnalyze = readyToAnalyze,
-                statusText = if (readyToAnalyze) "Ready to analyze" else "Finish the steps above to continue",
+                statusText = if (readyToAnalyze) (if (vm.language == AppLanguage.ML) "വിശകലനം ചെയ്യാൻ തയ്യാറാണ്" else "Ready to analyze")
+                             else (if (vm.language == AppLanguage.ML) "തുടരാൻ മുകളിലെ ഘട്ടങ്ങൾ പൂർത്തിയാക്കുക" else "Finish the steps above to continue"),
                 activeCaptureTarget = null,
                 isSteady = true,
                 tiltText = "",
@@ -353,7 +365,11 @@ fun AppNavGraph(
                         navController.navigate(Routes.analyzing(roomId))
                     }
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                language = vm.language,
+                onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme,
+                onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
 
@@ -485,6 +501,9 @@ fun AppNavGraph(
                 looseItemCount = room.photoAnalyses.maxOfOrNull { a -> a.detections.count { com.koolikanaku.domain.ClutterRules.isClutterLabel(it.label) } } ?: 0,
                 tasks = room.tasks,
                 language = vm.language,
+                onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme,
+                onToggleDarkTheme = vm::toggleDarkTheme,
                 allSelected = room.tasks.isNotEmpty() && room.tasks.all { it.isSelected },
                 onToggleTask = { vm.toggleTask(roomId, it) },
                 onIncrementTask = { vm.incrementTask(roomId, it) },
@@ -494,10 +513,12 @@ fun AppNavGraph(
                 onAddCatalogTask = { vm.addCatalogTask(roomId, it.key) },
                 onAddCustomTask = { name, minutes -> vm.addCustomTask(roomId, name, minutes) },
                 countRows = emptyList(),
-                estimateHoursText = "${formatHours(quote.expectedMinutes.low)}-${formatHours(quote.expectedMinutes.high)} hr",
+                estimateHoursText = "${formatHours(quote.expectedMinutes.low)}-${formatHours(quote.expectedMinutes.high)} ${if (vm.language == AppLanguage.ML) "മണി" else "hr"}",
                 estimatePayText = "₹${quote.priceInr.low.toInt()}-₹${quote.priceInr.high.toInt()}",
-                mathLine1 = "Standard: ${quote.standardMinutes.low.toInt()}-${quote.standardMinutes.high.toInt()} min",
-                mathLine2 = "Rate: ₹${job.hourlyRateInr.toInt()}/hr",
+                mathLine1 = if (vm.language == AppLanguage.ML) "സാധാരണ: ${quote.standardMinutes.low.toInt()}-${quote.standardMinutes.high.toInt()} മിനിറ്റ്"
+                            else "Standard: ${quote.standardMinutes.low.toInt()}-${quote.standardMinutes.high.toInt()} min",
+                mathLine2 = if (vm.language == AppLanguage.ML) "നിരക്ക്: ₹${job.hourlyRateInr.toInt()}/മണി"
+                            else "Rate: ₹${job.hourlyRateInr.toInt()}/hr",
                 onSaveRoom = {
                     vm.saveRoom()
                     navController.navigate(Routes.JOB_HUB) {
@@ -536,19 +557,21 @@ fun AppNavGraph(
             val billRooms = job.rooms.mapIndexed { index, room ->
                 val roomQuote = jobQuote.rooms.find { it.roomId == room.id }
                 BillRoomUi(
-                    name = "Room ${index + 1}",
-                    sizeText = room.dimensions?.let { "${it.computedAreaSqFt.toInt()} sq ft" } ?: "-",
+                    name = if (vm.language == AppLanguage.ML) "മുറി ${index + 1}" else "Room ${index + 1}",
+                    sizeText = room.dimensions?.let {
+                        if (vm.language == AppLanguage.ML) "${it.computedAreaSqFt.toInt()} ച. അടി" else "${it.computedAreaSqFt.toInt()} sq ft"
+                    } ?: "-",
                     payText = roomQuote?.let { "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}" } ?: "-",
-                    timeText = roomQuote?.let { "${formatHours(it.expectedMinutes.low)}-${formatHours(it.expectedMinutes.high)} hr" } ?: "-",
+                    timeText = roomQuote?.let { "${formatHours(it.expectedMinutes.low)}-${formatHours(it.expectedMinutes.high)} ${if (vm.language == AppLanguage.ML) "മണി" else "hr"}" } ?: "-",
                     tasks = room.tasks.filter { it.isSelected }.map {
                         BillTaskUi(
                             label = it.titleFor(vm.language),
                             qty = it.quantity,
-                            minutesText = "${it.quantity * it.minutesPerUnit} min",
+                            minutesText = "${it.quantity * it.minutesPerUnit} ${if (vm.language == AppLanguage.ML) "മിനിറ്റ്" else "min"}",
                             sourceLabel = when (it.source) {
-                                TaskSource.DETECTED -> "Seen in photo"
-                                TaskSource.TEMPLATE -> "Suggested for this room"
-                                TaskSource.MANUAL -> "Added by you"
+                                TaskSource.DETECTED -> if (vm.language == AppLanguage.ML) "ഫോട്ടോയിൽ കണ്ടത്" else "Seen in photo"
+                                TaskSource.TEMPLATE -> if (vm.language == AppLanguage.ML) "ഈ മുറിക്ക് നിർദ്ദേശിച്ചത്" else "Suggested for this room"
+                                TaskSource.MANUAL -> if (vm.language == AppLanguage.ML) "നിങ്ങൾ ചേർത്തത്" else "Added by you"
                             }
                         )
                     },
@@ -571,17 +594,17 @@ fun AppNavGraph(
                         val materialsInr = selectedTasks.sumOf { it.quantity * it.materialCostInr }
                         val spreadPct = room.dimensions?.source?.let { com.koolikanaku.domain.Constants.SPREAD_BY_SOURCE[it] }?.times(100)?.toInt() ?: 25
                         listOfNotNull(
-                            BillMathRowUi("Room size", "${areaSqFt.toInt()} sq ft × $minutesPerSqFt min/sq ft"),
-                            BillMathRowUi("Base floor minutes", "${baseFloorMinutes.toInt()} min"),
-                            BillMathRowUi("Selected task minutes", "$taskMinutes min (${selectedTasks.size} task(s))"),
-                            BillMathRowUi("Clutter multiplier", "x$mClutter (${room.clutter.name.lowercase()})"),
-                            BillMathRowUi("Grime multiplier", "x$mGrime (${effectiveSeverity.name.lowercase()})"),
-                            BillMathRowUi("Combined condition multiplier", "x${"%.2f".format(mCond)}"),
-                            roomQuote?.let { BillMathRowUi("Standard minutes", "${it.standardMinutes.low.toInt()}-${it.standardMinutes.high.toInt()} (±$spreadPct%)") },
-                            roomQuote?.let { BillMathRowUi("Expected minutes (your pace)", "${it.expectedMinutes.low.toInt()}-${it.expectedMinutes.high.toInt()}") },
-                            if (materialsInr > 0) BillMathRowUi("Materials", "₹${materialsInr.toInt()}") else null,
-                            BillMathRowUi("Hourly rate", "₹${job.hourlyRateInr.toInt()}/hr"),
-                            roomQuote?.let { BillMathRowUi("Price", "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}", emphasized = true) }
+                            BillMathRowUi(if (vm.language == AppLanguage.ML) "മുറിയുടെ വലിപ്പം" else "Room size", "${areaSqFt.toInt()} sq ft × $minutesPerSqFt min/sq ft"),
+                            BillMathRowUi(if (vm.language == AppLanguage.ML) "തറ സമയം" else "Base floor minutes", "${baseFloorMinutes.toInt()} min"),
+                            BillMathRowUi(if (vm.language == AppLanguage.ML) "ജോലി സമയം" else "Selected task minutes", "$taskMinutes min (${selectedTasks.size})"),
+                            BillMathRowUi(if (vm.language == AppLanguage.ML) "സാധനങ്ങളുടെ ഗുണകം" else "Clutter multiplier", "x$mClutter"),
+                            BillMathRowUi(if (vm.language == AppLanguage.ML) "അഴുക്കിന്റെ ഗുണകം" else "Grime multiplier", "x$mGrime"),
+                            BillMathRowUi(if (vm.language == AppLanguage.ML) "ആകെ ഗുണകം" else "Combined condition multiplier", "x${"%.2f".format(mCond)}"),
+                            roomQuote?.let { BillMathRowUi(if (vm.language == AppLanguage.ML) "സാധാരണ സമയം" else "Standard minutes", "${it.standardMinutes.low.toInt()}-${it.standardMinutes.high.toInt()} (±$spreadPct%)") },
+                            roomQuote?.let { BillMathRowUi(if (vm.language == AppLanguage.ML) "പ്രതീക്ഷിക്കുന്ന സമയം" else "Expected minutes", "${it.expectedMinutes.low.toInt()}-${it.expectedMinutes.high.toInt()}") },
+                            if (materialsInr > 0) BillMathRowUi(if (vm.language == AppLanguage.ML) "സാധനങ്ങൾ" else "Materials", "₹${materialsInr.toInt()}") else null,
+                            BillMathRowUi(if (vm.language == AppLanguage.ML) "മണിക്കൂർ നിരക്ക്" else "Hourly rate", "₹${job.hourlyRateInr.toInt()}/hr"),
+                            roomQuote?.let { BillMathRowUi(if (vm.language == AppLanguage.ML) "വില" else "Price", "₹${it.priceInr.low.toInt()}-₹${it.priceInr.high.toInt()}", emphasized = true) }
                         )
                     }
                 )
@@ -589,7 +612,7 @@ fun AppNavGraph(
 
             val photoGroups = job.rooms.mapIndexed { index, room ->
                 BillPhotoGroupUi(
-                    title = "Room ${index + 1}",
+                    title = if (vm.language == AppLanguage.ML) "മുറി ${index + 1}" else "Room ${index + 1}",
                     photos = room.photos.map {
                         BillPhotoUi(
                             label = it.role.name,
@@ -613,7 +636,7 @@ fun AppNavGraph(
                 val after = room.photos.lastOrNull { it.role == PhotoRole.AFTER }
                 BeforeAfterUi(
                     roomId = room.id,
-                    roomName = "Room ${index + 1}",
+                    roomName = if (vm.language == AppLanguage.ML) "മുറി ${index + 1}" else "Room ${index + 1}",
                     beforeUri = room.photos.firstOrNull { it.id == beforeId }?.uri,
                     afterUri = after?.uri,
                     afterHashShort = after?.sha256Hash?.take(10)
@@ -630,21 +653,24 @@ fun AppNavGraph(
                     if (hasPermission) afterLauncher() else afterPermissionLauncher.launch(android.Manifest.permission.CAMERA)
                 },
                 onVerifyPhotos = { navController.navigate(Routes.VERIFY) },
-                title = if (job.mode == AppMode.OWNER_QUOTE) "Cleaning Quotation" else "Cleaning Estimate",
-                subtitleLine = "${job.rooms.size} room(s) · " + stringResource(
+                title = if (job.mode == AppMode.OWNER_QUOTE) (if (vm.language == AppLanguage.ML) "ശുചീകരണ ക്വട്ടേഷൻ" else "Cleaning Quotation")
+                        else (if (vm.language == AppLanguage.ML) "ശുചീകരണ എസ്റ്റിമേറ്റ്" else "Cleaning Estimate"),
+                subtitleLine = (if (vm.language == AppLanguage.ML) "${job.rooms.size} മുറികൾ · " else "${job.rooms.size} room(s) · ") + stringResource(
                     if (job.mode == AppMode.OWNER_QUOTE) R.string.bill_rate_market else R.string.bill_rate_per_hour,
                     job.hourlyRateInr.toInt().toString()
                 ),
                 totalTimeText = "${formatHours(jobQuote.totalExpectedMinutes.low)}-${formatHours(jobQuote.totalExpectedMinutes.high)}",
-                payLabel = if (job.mode == AppMode.OWNER_QUOTE) "Quoted" else "You earn",
+                payLabel = if (job.mode == AppMode.OWNER_QUOTE) (if (vm.language == AppLanguage.ML) "ക്വട്ടേഷൻ തുക" else "Quoted")
+                           else (if (vm.language == AppLanguage.ML) "നിങ്ങളുടെ വരുമാനം" else "You earn"),
                 totalPayText = "₹${jobQuote.totalPriceInr.low.toInt()}-₹${jobQuote.totalPriceInr.high.toInt()}",
-                rangeNote = "Range reflects how each room's size was obtained.",
+                rangeNote = if (vm.language == AppLanguage.ML) "മുറികളുടെ വലിപ്പത്തിൽ എത്ര ഉറപ്പുണ്ടെന്ന് ഈ പരിധി കാണിക്കുന്നു."
+                            else "Range reflects how each room's size was obtained.",
                 rooms = billRooms,
                 photoGroups = photoGroups,
                 disclaimer = stringResource(R.string.bill_disclaimer),
                 exportSheetVisible = exportSheetVisible,
                 fileNameText = lastPdfUri?.lastPathSegment ?: "cleaning_estimate.pdf",
-                pdfMetaText = "${job.rooms.size} rooms",
+                pdfMetaText = if (vm.language == AppLanguage.ML) "${job.rooms.size} മുറികൾ" else "${job.rooms.size} rooms",
                 onExportPdf = {
                     val uri = PdfExporter.exportBillPdf(context, job, jobQuote, worstToughByRoom)
                     lastPdfUri = uri
@@ -670,7 +696,11 @@ fun AppNavGraph(
                     cvm.completeBooking(bookingId, summary)
                     finishedBookingIds = finishedBookingIds + bookingId
                 },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                language = vm.language,
+                onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme,
+                onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
 
@@ -704,7 +734,11 @@ fun AppNavGraph(
                 savedChecks = savedChecks,
                 fileResult = fileResult,
                 onPickFile = { picker.launch(arrayOf("image/*")) },
-                onBack = { navController.popBackStack() }
+                onBack = { navController.popBackStack() },
+                language = vm.language,
+                onLanguageChange = vm::changeLanguage,
+                darkTheme = vm.darkTheme,
+                onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
 
@@ -783,6 +817,7 @@ fun AppNavGraph(
                 },
                 error = cvm.authError,
                 onBack = { navController.popBackStack() },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -803,6 +838,7 @@ fun AppNavGraph(
                         }
                     }
                 },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -841,6 +877,7 @@ fun AppNavGraph(
                         launchSingleTop = true
                     }
                 },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -853,6 +890,7 @@ fun AppNavGraph(
                 onAccept = { cvm.respondToBooking(it, true) },
                 onDecline = { cvm.respondToBooking(it, false) },
                 onBack = { navController.popBackStack() },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -882,6 +920,7 @@ fun AppNavGraph(
                         launchSingleTop = true
                     }
                 },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -899,6 +938,7 @@ fun AppNavGraph(
                 recentRatings = recentRatings,
                 onRequestBooking = { cvm.requestBooking(workerId) { bookingId -> navController.navigate(Routes.bookingStatus(bookingId)) } },
                 onBack = { navController.popBackStack() },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -938,6 +978,7 @@ fun AppNavGraph(
                 onCancel = { cvm.cancelBooking(bookingId, "Cancelled by ${if (meIsWorker) "worker" else "owner"}") },
                 onRate = { navController.navigate(Routes.rateWorker(bookingId)) },
                 onBack = { navController.popBackStack() },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -966,6 +1007,7 @@ fun AppNavGraph(
                         }
                     }
                 },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }

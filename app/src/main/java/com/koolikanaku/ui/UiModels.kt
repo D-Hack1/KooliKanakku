@@ -58,3 +58,15 @@ fun TaskSource.displayName(): String = stringResource(
 /** Picks a [CleaningTask]'s title for the currently selected app language. */
 fun com.koolikanaku.domain.CleaningTask.titleFor(language: AppLanguage): String =
     if (language == AppLanguage.ML) titleMl else titleEn
+
+/** Simple bilingual selector based on [language]. */
+fun t(language: AppLanguage, en: String, ml: String): String =
+    if (language == AppLanguage.ML) ml else en
+
+fun RoomType.displayName(language: AppLanguage): String = when (this) {
+    RoomType.KITCHEN -> if (language == AppLanguage.ML) "അടുക്കള" else "Kitchen"
+    RoomType.BATHROOM -> if (language == AppLanguage.ML) "കുളിമുറി" else "Bathroom"
+    RoomType.BEDROOM -> if (language == AppLanguage.ML) "കിടപ്പുമുറി" else "Bedroom"
+    RoomType.LIVING_ROOM -> if (language == AppLanguage.ML) "സ്വീകരണമുറി" else "Living Room"
+    RoomType.OTHER -> if (language == AppLanguage.ML) "മറ്റുള്ളവ" else "Other"
+}

@@ -42,7 +42,48 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.connect.model.Booking
 import com.koolikanaku.connect.model.BookingStatus
+import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
+import com.koolikanaku.ui.t
+
+private val POPULAR_LANGUAGES = listOf(
+    "Malayalam" to "മലയാളം",
+    "English" to "English",
+    "Tamil" to "தமிழ்",
+    "Hindi" to "हिन्दी",
+    "Kannada" to "ಕನ್ನಡ",
+    "Bengali" to "বাংলা"
+)
+
+private fun translateService(service: String, language: AppLanguage): String {
+    if (language != AppLanguage.ML) return service
+    return when (service.trim().lowercase()) {
+        "sweeping" -> "അടിക്കൽ"
+        "mopping" -> "തുടയ്ക്കൽ"
+        "kitchen cleaning" -> "അടുക്കള വൃത്തിയാക്കൽ"
+        "bathroom cleaning" -> "കുളിമുറി വൃത്തിയാക്കൽ"
+        "deep clean" -> "ഡീപ് ക്ലീനിംഗ്"
+        "dusting" -> "പൊടി തുടയ്ക്കൽ"
+        else -> service
+    }
+}
+
+internal fun bookingStatusLabel(status: BookingStatus, language: AppLanguage = AppLanguage.EN): String {
+    if (language != AppLanguage.ML) return status.name.lowercase().replace('_', ' ')
+    return when (status) {
+        BookingStatus.REQUESTED -> "അഭ്യർത്ഥിച്ചു"
+        BookingStatus.ACCEPTED -> "സ്വീകരിച്ചു"
+        BookingStatus.ARRIVED -> "എത്തിച്ചേർന്നു"
+        BookingStatus.IN_PROGRESS -> "പുരോഗതിയിൽ"
+        BookingStatus.COMPLETED -> "പൂർത്തിയായി"
+        BookingStatus.RATED -> "റേറ്റിംഗ് നൽകി"
+        BookingStatus.DECLINED -> "നിരസിച്ചു"
+        BookingStatus.CANCELLED -> "റദ്ദാക്കി"
+        BookingStatus.EXPIRED -> "കാലഹരണപ്പെട്ടു"
+        else -> status.name.lowercase().replace('_', ' ')
+    }
+}
 
 /** extra_feature.md Section 9: "Worker profile" - name is already known from sign-up. */
 @Composable
@@ -59,69 +100,163 @@ fun WorkerProfileScreen(
     bio: String,
     onBioChange: (String) -> Unit,
     onSave: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
+    val currentSelectedLangs = remember(languagesText) {
+        languagesText.split(",")
+            .map { it.trim() }
+            .filter { it.isNotEmpty() }
+    }
+
+    fun toggleLanguage(langName: String) {
+        val exists = currentSelectedLangs.any { it.equals(langName, ignoreCase = true) }
+        val updated = if (exists) {
+            currentSelectedLangs.filterNot { it.equals(langName, ignoreCase = true) }
+        } else {
+            currentSelectedLangs + langName
+        }
+        onLanguagesChange(updated.joinToString(", "))
+    }
+
     Scaffold(modifier = modifier) { padding ->
         LazyColumn(
             contentPadding = PaddingValues(horizontal = 24.dp, vertical = padding.calculateTopPadding() + 24.dp),
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Your worker profile", style = MaterialTheme.typography.headlineMedium)
-                        Text("Owners see this when they browse nearby workers.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            t(language, "Your worker profile", "നിങ്ങളുടെ തൊഴിലാളി പ്രൊഫൈൽ"),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Text(
+                            t(language, "Owners see this when they browse nearby workers.", "സമീപത്തുള്ള ഉടമകൾ തൊഴിലാളികളെ തിരയുമ്പോൾ ഇത് കാണാം."),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    }
                 }
             }
-            item {
-                OutlinedTextField(
-                    value = languagesText, onValueChange = onLanguagesChange,
-                    label = { Text("Languages (comma separated)") }, placeholder = { Text("Malayalam, English") },
-                    singleLine = true, modifier = Modifier.fillMaxWidth()
-                )
-            }
+
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    Text("Services offered", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        t(language, "Select languages known", "അറിയാവുന്ന ഭാഷകൾ തിരഞ്ഞെടുക്കുക"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        POPULAR_LANGUAGES.take(3).forEach { (langEn, langNative) ->
+                            val isSelected = currentSelectedLangs.any { it.equals(langEn, ignoreCase = true) }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { toggleLanguage(langEn) },
+                                label = { Text(if (language == AppLanguage.ML) langNative else langEn) }
+                            )
+                        }
+                    }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        POPULAR_LANGUAGES.drop(3).forEach { (langEn, langNative) ->
+                            val isSelected = currentSelectedLangs.any { it.equals(langEn, ignoreCase = true) }
+                            FilterChip(
+                                selected = isSelected,
+                                onClick = { toggleLanguage(langEn) },
+                                label = { Text(if (language == AppLanguage.ML) langNative else langEn) }
+                            )
+                        }
+                    }
+                    OutlinedTextField(
+                        value = languagesText,
+                        onValueChange = onLanguagesChange,
+                        label = { Text(t(language, "Languages (comma separated)", "ഭാഷകൾ (കോമ നൽകി നൽകുക)")) },
+                        placeholder = { Text(t(language, "Malayalam, English, Tamil", "മലയാളം, ഇംഗ്ലീഷ്, തമിഴ്")) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
+            }
+
+            item {
+                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                    Text(
+                        t(language, "Services offered", "നൽകുന്ന സേവനങ്ങൾ"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         availableServices.take(3).forEach { service ->
-                            FilterChip(selected = service in selectedServices, onClick = { onToggleService(service) }, label = { Text(service) })
+                            FilterChip(
+                                selected = service in selectedServices,
+                                onClick = { onToggleService(service) },
+                                label = { Text(translateService(service, language)) }
+                            )
                         }
                     }
                     Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                         availableServices.drop(3).forEach { service ->
-                            FilterChip(selected = service in selectedServices, onClick = { onToggleService(service) }, label = { Text(service) })
+                            FilterChip(
+                                selected = service in selectedServices,
+                                onClick = { onToggleService(service) },
+                                label = { Text(translateService(service, language)) }
+                            )
                         }
                     }
                 }
             }
+
             item {
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
-                        value = rateMin, onValueChange = onRateMinChange, label = { Text("Rate from (₹/hr)") },
+                        value = rateMin,
+                        onValueChange = onRateMinChange,
+                        label = { Text(t(language, "Rate from (₹/hr)", "കുറഞ്ഞ നിരക്ക് (₹/മണി)")) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true, modifier = Modifier.weight(1f)
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
-                        value = rateMax, onValueChange = onRateMaxChange, label = { Text("Rate to (₹/hr)") },
+                        value = rateMax,
+                        onValueChange = onRateMaxChange,
+                        label = { Text(t(language, "Rate to (₹/hr)", "കൂടിയ നിരക്ക് (₹/മണി)")) },
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true, modifier = Modifier.weight(1f)
+                        singleLine = true,
+                        modifier = Modifier.weight(1f)
                     )
                 }
             }
+
             item {
                 OutlinedTextField(
-                    value = bio, onValueChange = onBioChange, label = { Text("Short bio (optional)") },
+                    value = bio,
+                    onValueChange = onBioChange,
+                    label = { Text(t(language, "Short bio (optional)", "ചെറിയ വിവരണം (ഓപ്ഷണൽ)")) },
                     modifier = Modifier.fillMaxWidth().height(100.dp)
                 )
             }
+
             item {
                 Button(onClick = onSave, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                    Text("Save profile", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        t(language, "Save profile", "പ്രൊഫൈൽ സേവ് ചെയ്യുക"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }
@@ -144,6 +279,8 @@ fun WorkerHomeScreen(
     onOpenEstimator: () -> Unit,
     onSignOut: () -> Unit,
     onSeeAllRequests: () -> Unit = {},
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -154,21 +291,37 @@ fun WorkerHomeScreen(
             verticalArrangement = Arrangement.spacedBy(22.dp)
         ) {
             item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Hi, $workerName", style = MaterialTheme.typography.headlineMedium)
-                        Text("Worker home", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            t(language, "Hi, $workerName", "നമസ്കാരം, $workerName"),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Text(
+                            t(language, "Worker home", "തൊഴിലാളി ഹോം"),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onEditProfile) { Text("Edit profile") }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        TextButton(onClick = onEditProfile) {
+                            Text(t(language, "Edit profile", "പ്രൊഫൈൽ മാറ്റുക"))
+                        }
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
                         DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
             }
+
             item {
                 val bannerColor by animateColorAsState(
                     if (openForWork) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-                    animationSpec = tween(320, easing = FastOutSlowInEasing), label = "bannerColor"
+                    animationSpec = tween(320, easing = FastOutSlowInEasing),
+                    label = "bannerColor"
                 )
                 Surface(
                     shape = RoundedCornerShape(18.dp),
@@ -182,30 +335,67 @@ fun WorkerHomeScreen(
                         verticalAlignment = Alignment.CenterVertically
                     ) {
                         Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                            Text(if (openForWork) "Open for work" else "Not visible to owners", style = MaterialTheme.typography.titleMedium)
                             Text(
-                                if (openForWork) "You are visible to owners near ${areaLabel ?: "you"}. Turns off automatically after 4 hours."
-                                else "Turn this on so owners nearby can find and book you.",
-                                style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant
+                                if (openForWork) t(language, "Open for work", "ജോലിക്ക് തയ്യാറാണ്")
+                                else t(language, "Not visible to owners", "ഉടമകൾക്ക് കാണാനാവില്ല"),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                if (openForWork) {
+                                    t(
+                                        language,
+                                        "You are visible to owners near ${areaLabel ?: "you"}. Turns off automatically after 4 hours.",
+                                        "${areaLabel ?: "നിങ്ങളുടെ"} സമീപത്തുള്ള ഉടമകൾക്ക് നിങ്ങളെ കാണാം. 4 മണിക്കൂറിന് ശേഷം തനിയെ ഓഫാകും."
+                                    )
+                                } else {
+                                    t(
+                                        language,
+                                        "Turn this on so owners nearby can find and book you.",
+                                        "സമീപത്തുള്ള ഉടമകൾക്ക് നിങ്ങളെ കണ്ടെത്താനും വിളിക്കാനും ഇത് ഓണാക്കുക."
+                                    )
+                                },
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                         Switch(checked = openForWork, onCheckedChange = { onToggleOpen() })
                     }
                 }
             }
+
             if (active != null) {
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                        Text("Active booking", style = MaterialTheme.typography.titleMedium)
-                        BookingCard(booking = active, meIsWorker = true, onClick = { onOpenBooking(active.id) })
+                        Text(
+                            t(language, "Active booking", "നിലവിലുള്ള ബുക്കിംഗ്"),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        BookingCard(
+                            booking = active,
+                            meIsWorker = true,
+                            language = language,
+                            onClick = { onOpenBooking(active.id) }
+                        )
                     }
                 }
             }
+
             if (incoming.isNotEmpty()) {
                 item {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        Text("Incoming requests", style = MaterialTheme.typography.titleMedium)
-                        if (incoming.size > 2) TextButton(onClick = onSeeAllRequests) { Text("See all (${incoming.size})") }
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        Text(
+                            t(language, "Incoming requests", "വന്ന അഭ്യർത്ഥനകൾ"),
+                            style = MaterialTheme.typography.titleMedium
+                        )
+                        if (incoming.size > 2) {
+                            TextButton(onClick = onSeeAllRequests) {
+                                Text(t(language, "See all (${incoming.size})", "എല്ലാം (${incoming.size})"))
+                            }
+                        }
                     }
                 }
                 itemsIndexed(incoming.take(2)) { index, b ->
@@ -214,22 +404,41 @@ fun WorkerHomeScreen(
                         enter = fadeIn(tween(360, delayMillis = index * 60, easing = FastOutSlowInEasing)) +
                             slideInVertically(tween(360, delayMillis = index * 60, easing = FastOutSlowInEasing)) { it / 5 }
                     ) {
-                        RequestCard(booking = b, onAccept = { onAccept(b.id) }, onDecline = { onDecline(b.id) })
+                        RequestCard(
+                            booking = b,
+                            language = language,
+                            onAccept = { onAccept(b.id) },
+                            onDecline = { onDecline(b.id) }
+                        )
                     }
                 }
             } else {
                 item {
                     Text(
-                        "No requests yet. They'll show up here as soon as an owner books you.",
-                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+                        t(
+                            language,
+                            "No requests yet. They'll show up here as soon as an owner books you.",
+                            "ഇതുവരെ പുതിയ അഭ്യർത്ഥനകളില്ല. ഉടമകൾ ബുക്ക് ചെയ്യുമ്പോൾ ഇവിടെ കാണാം."
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
             }
+
             item {
-                OutlinedButton(onClick = onOpenEstimator, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("Open offline estimator") }
+                OutlinedButton(
+                    onClick = onOpenEstimator,
+                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                ) {
+                    Text(t(language, "Open offline estimator", "ഓഫ്‌ലൈൻ എസ്റ്റിമേറ്റർ തുറക്കുക"))
+                }
             }
+
             item {
-                TextButton(onClick = onSignOut) { Text("Sign out") }
+                TextButton(onClick = onSignOut) {
+                    Text(t(language, "Sign out", "പുറത്തുകടക്കുക"))
+                }
             }
         }
     }
@@ -242,6 +451,8 @@ fun RequestInboxScreen(
     onAccept: (String) -> Unit,
     onDecline: (String) -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -253,15 +464,32 @@ fun RequestInboxScreen(
         ) {
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onBack) { Text("< Back") }
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        TextButton(onClick = onBack) {
+                            Text(t(language, "< Back", "< തിരികെ"))
+                        }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
                     }
-                    Text("Request inbox", style = MaterialTheme.typography.headlineMedium)
+                    Text(
+                        t(language, "Request inbox", "അഭ്യർത്ഥനകൾ"),
+                        style = MaterialTheme.typography.headlineMedium
+                    )
                 }
             }
             if (requests.isEmpty()) {
-                item { Text("No pending requests.", color = MaterialTheme.colorScheme.onSurfaceVariant) }
+                item {
+                    Text(
+                        t(language, "No pending requests.", "തീർപ്പാക്കാത്ത അഭ്യർത്ഥനകളില്ല."),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             itemsIndexed(requests) { index, b ->
                 AnimatedVisibility(
@@ -269,7 +497,12 @@ fun RequestInboxScreen(
                     enter = fadeIn(tween(340, delayMillis = index * 50, easing = FastOutSlowInEasing)) +
                         slideInVertically(tween(340, delayMillis = index * 50, easing = FastOutSlowInEasing)) { it / 5 }
                 ) {
-                    RequestCard(booking = b, onAccept = { onAccept(b.id) }, onDecline = { onDecline(b.id) })
+                    RequestCard(
+                        booking = b,
+                        language = language,
+                        onAccept = { onAccept(b.id) },
+                        onDecline = { onDecline(b.id) }
+                    )
                 }
             }
         }
@@ -277,44 +510,88 @@ fun RequestInboxScreen(
 }
 
 @Composable
-internal fun RequestCard(booking: Booking, onAccept: () -> Unit, onDecline: () -> Unit) {
+internal fun RequestCard(
+    booking: Booking,
+    language: AppLanguage = AppLanguage.EN,
+    onAccept: () -> Unit,
+    onDecline: () -> Unit
+) {
     Surface(
-        shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shadowElevation = 1.dp,
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 1.dp,
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Text(booking.ownerName, style = MaterialTheme.typography.titleMedium)
-            Text("${booking.areaLabel} · ${booking.sizeHint} · ${booking.requestedForIso}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(
+                "${booking.areaLabel} · ${booking.sizeHint} · ${booking.requestedForIso}",
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Row(horizontalArrangement = Arrangement.spacedBy(10.dp), modifier = Modifier.padding(top = 8.dp)) {
-                Button(onClick = onAccept, modifier = Modifier.weight(1f).height(44.dp)) { Text("Accept") }
-                OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f).height(44.dp)) { Text("Decline") }
+                Button(onClick = onAccept, modifier = Modifier.weight(1f).height(44.dp)) {
+                    Text(t(language, "Accept", "സ്വീകരിക്കുക"))
+                }
+                OutlinedButton(onClick = onDecline, modifier = Modifier.weight(1f).height(44.dp)) {
+                    Text(t(language, "Decline", "നിരസിക്കുക"))
+                }
             }
         }
     }
 }
 
 @Composable
-internal fun BookingCard(booking: Booking, meIsWorker: Boolean, onClick: () -> Unit) {
+internal fun BookingCard(
+    booking: Booking,
+    meIsWorker: Boolean,
+    language: AppLanguage = AppLanguage.EN,
+    onClick: () -> Unit
+) {
     val interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
-    val scale by androidx.compose.animation.core.animateFloatAsState(if (pressed) 0.98f else 1f, label = "bookingCardScale")
+    val scale by androidx.compose.animation.core.animateFloatAsState(
+        if (pressed) 0.98f else 1f,
+        label = "bookingCardScale"
+    )
     Surface(
-        shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth().scale(scale)
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
     ) {
-        Row(modifier = Modifier.padding(18.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            modifier = Modifier.padding(18.dp),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                Text(if (meIsWorker) booking.ownerName else booking.workerName, style = MaterialTheme.typography.titleMedium)
-                Text(booking.areaLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    if (meIsWorker) booking.ownerName else booking.workerName,
+                    style = MaterialTheme.typography.titleMedium
+                )
+                Text(
+                    booking.areaLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
-            Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.wrapContentWidth()) {
-                Text(booking.status.name.lowercase().replace('_', ' '), modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium)
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.primaryContainer,
+                modifier = Modifier.wrapContentWidth()
+            ) {
+                Text(
+                    bookingStatusLabel(booking.status, language),
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp),
+                    style = MaterialTheme.typography.labelMedium
+                )
             }
         }
     }
 }
-
-internal fun bookingStatusLabel(status: BookingStatus): String = status.name.lowercase().replace('_', ' ')

@@ -51,6 +51,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
+import com.koolikanaku.ui.AppLanguage
+import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
 import com.koolikanaku.ui.components.PhotoImage
 import com.koolikanaku.ui.components.openPhotoExternally
 import androidx.compose.ui.platform.LocalContext
@@ -112,6 +115,10 @@ fun BillScreen(
     onShare: () -> Unit,
     onDismissExportSheet: () -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
+    darkTheme: Boolean = false,
+    onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var expandedMath by remember { mutableStateOf(setOf<Int>()) }
@@ -121,16 +128,26 @@ fun BillScreen(
         modifier = modifier,
         topBar = {
             Row(
-                modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
+                modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(start = 4.dp, top = 12.dp, end = 16.dp, bottom = 12.dp),
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(6.dp)
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(title, style = MaterialTheme.typography.headlineMedium)
+                        Text(subtitleLine, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-                Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                    Text(title, style = MaterialTheme.typography.headlineMedium)
-                    Text(subtitleLine, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                 }
             }
         },

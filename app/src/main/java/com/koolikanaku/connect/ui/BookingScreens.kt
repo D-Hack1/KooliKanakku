@@ -39,11 +39,26 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.connect.model.Booking
 import com.koolikanaku.connect.model.BookingStatus
+import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
+import com.koolikanaku.ui.t
 
 private val TIMELINE = listOf(
     BookingStatus.REQUESTED, BookingStatus.ACCEPTED, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS, BookingStatus.COMPLETED
 )
+
+private fun translateTag(tag: String, language: AppLanguage): String {
+    if (language != AppLanguage.ML) return tag
+    return when (tag.trim().lowercase()) {
+        "punctual" -> "കൃത്യനിഷ്ഠ"
+        "fast" -> "വേഗതയുള്ളത്"
+        "thorough" -> "സൂക്ഷ്മതയുള്ളത്"
+        "polite" -> "നല്ല പെരുമാറ്റം"
+        "hardworking" -> "കഠിനാധ്വാനം"
+        else -> tag
+    }
+}
 
 /**
  * extra_feature.md Section 9: "Booking status" - timeline, Call button (after acceptance), Arrived,
@@ -59,6 +74,8 @@ fun BookingStatusScreen(
     onCancel: () -> Unit,
     onRate: () -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -67,10 +84,13 @@ fun BookingStatusScreen(
         if (booking == null) {
             Column(modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onBack) { Text("< Back") }
-                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    TextButton(onClick = onBack) { Text(t(language, "< Back", "< തിരികെ")) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    }
                 }
-                Text("This booking is no longer available.")
+                Text(t(language, "This booking is no longer available.", "ഈ ബുക്കിംഗ് ഇപ്പോൾ ലഭ്യമല്ല."))
             }
             return@Scaffold
         }
@@ -80,8 +100,11 @@ fun BookingStatusScreen(
         ) {
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onBack) { Text("< Back") }
-                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    TextButton(onClick = onBack) { Text(t(language, "< Back", "< തിരികെ")) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    }
                 }
             }
             item {
@@ -90,13 +113,17 @@ fun BookingStatusScreen(
                     Text("${booking.areaLabel} · ${booking.sizeHint}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                 }
             }
-            item { StatusTimeline(current = booking.status) }
+            item { StatusTimeline(current = booking.status, language = language) }
 
             if (booking.status == BookingStatus.DECLINED || booking.status == BookingStatus.CANCELLED || booking.status == BookingStatus.EXPIRED) {
                 item {
                     Surface(shape = RoundedCornerShape(16.dp), color = MaterialTheme.colorScheme.errorContainer, modifier = Modifier.fillMaxWidth()) {
                         Text(
-                            "This booking was ${booking.status.name.lowercase()}" + (booking.cancelReason?.let { ": $it" } ?: "."),
+                            t(
+                                language,
+                                "This booking was ${booking.status.name.lowercase()}" + (booking.cancelReason?.let { ": $it" } ?: "."),
+                                "ഈ ബുക്കിംഗ് ${bookingStatusLabel(booking.status, language)} ആയിരുന്നു" + (booking.cancelReason?.let { ": $it" } ?: ".")
+                            ),
                             modifier = Modifier.padding(16.dp), style = MaterialTheme.typography.bodyMedium
                         )
                     }
@@ -106,36 +133,55 @@ fun BookingStatusScreen(
             if (booking.status == BookingStatus.ACCEPTED || booking.status == BookingStatus.ARRIVED || booking.status == BookingStatus.IN_PROGRESS) {
                 item {
                     Button(onClick = onCall, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                        Text("Call ${if (meIsWorker) "owner" else "worker"} - share the address by voice", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            t(
+                                language,
+                                "Call ${if (meIsWorker) "owner" else "worker"} - share the address by voice",
+                                "${if (meIsWorker) "ഉടമയെ" else "തൊഴിലാളിയെ"} വിളിക്കുക - ഫോണിലൂടെ വിലാസം നൽകാം"
+                            ),
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
             }
             if (booking.status == BookingStatus.ACCEPTED) {
                 item {
-                    OutlinedButton(onClick = onArrived, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("I've arrived / worker arrived") }
+                    OutlinedButton(onClick = onArrived, modifier = Modifier.fillMaxWidth().height(50.dp)) {
+                        Text(t(language, "I've arrived / worker arrived", "ഞാൻ എത്തി / തൊഴിലാളി എത്തിച്ചേർന്നു"))
+                    }
                 }
             }
             if (booking.status == BookingStatus.ARRIVED || booking.status == BookingStatus.IN_PROGRESS) {
                 item {
                     Button(onClick = onStartEstimate, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                        Text(if (meIsWorker) "Start the estimate" else "Start the estimate (quotation)", style = MaterialTheme.typography.titleMedium)
+                        Text(
+                            if (meIsWorker) t(language, "Start the estimate", "എസ്റ്റിമേറ്റ് തുടങ്ങുക")
+                            else t(language, "Start the estimate (quotation)", "ക്വട്ടേഷൻ ആരംഭിക്കുക"),
+                            style = MaterialTheme.typography.titleMedium
+                        )
                     }
                 }
             }
             if (booking.status == BookingStatus.COMPLETED && !meIsWorker) {
                 item {
-                    Button(onClick = onRate, modifier = Modifier.fillMaxWidth().height(54.dp)) { Text("Rate this worker") }
+                    Button(onClick = onRate, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                        Text(t(language, "Rate this worker", "തൊഴിലാളിക്ക് റേറ്റിംഗ് നൽകുക"))
+                    }
                 }
             }
             if (booking.status == BookingStatus.REQUESTED || booking.status == BookingStatus.ACCEPTED) {
-                item { TextButton(onClick = onCancel) { Text("Cancel booking") } }
+                item {
+                    TextButton(onClick = onCancel) {
+                        Text(t(language, "Cancel booking", "ബുക്കിംഗ് റദ്ദാക്കുക"))
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun StatusTimeline(current: BookingStatus) {
+private fun StatusTimeline(current: BookingStatus, language: AppLanguage = AppLanguage.EN) {
     val index = TIMELINE.indexOf(current).let { if (it < 0) 0 else it }
     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(5.dp)) {
         TIMELINE.forEachIndexed { i, status ->
@@ -147,7 +193,11 @@ private fun StatusTimeline(current: BookingStatus) {
                 Surface(shape = RoundedCornerShape(50), color = color, modifier = Modifier.fillMaxWidth()) {
                     Box(modifier = Modifier.height(10.dp).fillMaxWidth()) {}
                 }
-                Text(status.name.lowercase().replace('_', ' '), style = MaterialTheme.typography.labelSmall, modifier = Modifier.padding(top = 4.dp))
+                Text(
+                    bookingStatusLabel(status, language),
+                    style = MaterialTheme.typography.labelSmall,
+                    modifier = Modifier.padding(top = 4.dp)
+                )
             }
         }
     }
@@ -166,6 +216,8 @@ fun RateWorkerScreen(
     onCommentChange: (String) -> Unit,
     willBeVerified: Boolean,
     onSubmit: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -173,8 +225,14 @@ fun RateWorkerScreen(
     Scaffold(modifier = modifier) { padding ->
         Column(modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp), verticalArrangement = Arrangement.spacedBy(20.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                Text("Rate $workerName", style = MaterialTheme.typography.headlineMedium)
-                DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                Text(
+                    t(language, "Rate $workerName", "$workerName-ന് റേറ്റിംഗ് നൽകുക"),
+                    style = MaterialTheme.typography.headlineMedium
+                )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                }
             }
             Row {
                 (1..5).forEach { i ->
@@ -190,11 +248,17 @@ fun RateWorkerScreen(
             }
             Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                 availableTags.forEach { tag ->
-                    FilterChip(selected = tag in selectedTags, onClick = { onToggleTag(tag) }, label = { Text(tag) })
+                    FilterChip(
+                        selected = tag in selectedTags,
+                        onClick = { onToggleTag(tag) },
+                        label = { Text(translateTag(tag, language)) }
+                    )
                 }
             }
             OutlinedTextField(
-                value = comment, onValueChange = onCommentChange, label = { Text("Comment (optional)") },
+                value = comment,
+                onValueChange = onCommentChange,
+                label = { Text(t(language, "Comment (optional)", "അഭിപ്രായം (ഓപ്ഷണൽ)")) },
                 modifier = Modifier.fillMaxWidth().height(110.dp)
             )
             Surface(
@@ -203,13 +267,24 @@ fun RateWorkerScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    if (willBeVerified) "This rating will be marked verified - it's backed by a hashed, completed job."
-                    else "This rating will not be verified: no evidence summary was attached to this booking.",
+                    if (willBeVerified) {
+                        t(
+                            language,
+                            "This rating will be marked verified - it's backed by a hashed, completed job.",
+                            "ഈ റേറ്റിംഗ് സ്ഥിരീകരിച്ചതായി അടയാളപ്പെടുത്തും - പൂർത്തിയായ ജോലിയുടെ തെളിവ് ഇതിലുണ്ട്."
+                        )
+                    } else {
+                        t(
+                            language,
+                            "This rating will not be verified: no evidence summary was attached to this booking.",
+                            "ഈ റേറ്റിംഗ് സ്ഥിരീകരിക്കപ്പെടില്ല: ഈ ബുക്കിംഗിന് തെളിവുകൾ ലഭ്യമല്ല."
+                        )
+                    },
                     style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(14.dp)
                 )
             }
             Button(onClick = onSubmit, enabled = stars > 0, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                Text("Submit rating", style = MaterialTheme.typography.titleMedium)
+                Text(t(language, "Submit rating", "റേറ്റിംഗ് സമർപ്പിക്കുക"), style = MaterialTheme.typography.titleMedium)
             }
         }
     }

@@ -65,6 +65,7 @@ import com.koolikanaku.connect.model.Role
 import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.components.DarkModeToggle
 import com.koolikanaku.ui.components.LanguageToggle
+import com.koolikanaku.ui.t
 
 private fun t(ml: Boolean, en: String, malayalam: String) = if (ml) malayalam else en
 
@@ -264,6 +265,8 @@ fun RoleSelectScreen(
     onPick: (Role) -> Unit,
     error: String? = null,
     onBack: () -> Unit = {},
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -280,12 +283,15 @@ fun RoleSelectScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onBack) { Text("< Back") }
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        TextButton(onClick = onBack) { Text(t(language, "< Back", "< പിന്നിലേക്ക്")) }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
                     }
-                    Text("Who are you?", style = MaterialTheme.typography.headlineLarge)
+                    Text(t(language, "Who are you?", "നിങ്ങൾ ആരാണ്?"), style = MaterialTheme.typography.headlineLarge)
                     Text(
-                        "This can't be changed later without signing out.",
+                        t(language, "This can't be changed later without signing out.", "സൈൻ ഔട്ട് ചെയ്യാതെ ഇത് പിന്നീട് മാറ്റാൻ കഴിയില്ല."),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(bottom = 4.dp)
@@ -306,8 +312,8 @@ fun RoleSelectScreen(
                 ) {
                     RoleCard(
                         icon = Icons.Outlined.CleaningServices,
-                        title = "I'm a worker",
-                        subtitle = "I clean homes and want to find jobs nearby.",
+                        title = t(language, "I'm a worker", "ഞാൻ ഒരു തൊഴിലാളിയാണ്"),
+                        subtitle = t(language, "I clean homes and want to find jobs nearby.", "വീടുകൾ വൃത്തിയാക്കാനും അടുത്തുള്ള ജോലികൾ കണ്ടെത്താനും ആഗ്രഹിക്കുന്നു."),
                         onClick = { onPick(Role.WORKER) }
                     )
                 }
@@ -320,8 +326,8 @@ fun RoleSelectScreen(
                 ) {
                     RoleCard(
                         icon = Icons.Outlined.House,
-                        title = "I'm an owner",
-                        subtitle = "I own a home and want to find a worker.",
+                        title = t(language, "I'm an owner", "ഞാൻ ഒരു തൊഴിലുടമയാണ്"),
+                        subtitle = t(language, "I own a home and want to find a worker.", "എന്റെ വീട് വൃത്തിയാക്കാൻ വിശ്വസ്തനായ തൊഴിലാളിയെ ആവശ്യമുണ്ട്."),
                         onClick = { onPick(Role.OWNER) }
                     )
                 }

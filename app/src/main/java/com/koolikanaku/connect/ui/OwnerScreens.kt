@@ -40,7 +40,10 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.connect.model.Rating
 import com.koolikanaku.connect.model.WorkerCard
+import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
+import com.koolikanaku.ui.t
 
 /** extra_feature.md Section 9: "Nearby workers (owner)" - sorted by trust/distance, with an empty state. */
 @Composable
@@ -50,6 +53,8 @@ fun NearbyWorkersScreen(
     onWorkerClick: (String) -> Unit,
     onOpenEstimator: () -> Unit,
     onSignOut: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -60,23 +65,54 @@ fun NearbyWorkersScreen(
             verticalArrangement = Arrangement.spacedBy(14.dp)
         ) {
             item {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
-                        Text("Find a worker", style = MaterialTheme.typography.headlineMedium)
-                        Text("Open for work near ${areaLabel ?: "you"}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                        Text(
+                            t(language, "Find a worker", "തൊഴിലാളിയെ കണ്ടെത്തുക"),
+                            style = MaterialTheme.typography.headlineMedium
+                        )
+                        Text(
+                            t(
+                                language,
+                                "Open for work near ${areaLabel ?: "you"}",
+                                "${areaLabel ?: "നിങ്ങളുടെ"} സമീപം ലഭ്യമായവർ"
+                            ),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
                     }
-                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    }
                 }
             }
             if (workers.isEmpty()) {
                 item {
                     Surface(
-                        shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()
+                        shape = RoundedCornerShape(18.dp),
+                        color = MaterialTheme.colorScheme.surface,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(22.dp), verticalArrangement = Arrangement.spacedBy(6.dp)) {
-                            Text("No one's open for work right now", style = MaterialTheme.typography.titleMedium)
-                            Text("Check back soon, or ask a worker you know to turn on \"Open for work\".", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                t(language, "No one's open for work right now", "ഇപ്പോൾ ആരും ലഭ്യമല്ല"),
+                                style = MaterialTheme.typography.titleMedium
+                            )
+                            Text(
+                                t(
+                                    language,
+                                    "Check back soon, or ask a worker you know to turn on \"Open for work\".",
+                                    "കുറച്ച് കഴിഞ്ഞ് വീണ്ടും നോക്കൂ, അല്ലെങ്കിൽ പരിചയമുള്ള തൊഴിലാളിയോട് ആപ്പിൽ ലഭ്യമാവാൻ പറയൂ."
+                                ),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
                         }
                     }
                 }
@@ -87,41 +123,66 @@ fun NearbyWorkersScreen(
                     enter = fadeIn(tween(360, delayMillis = index * 50, easing = FastOutSlowInEasing)) +
                         slideInVertically(tween(360, delayMillis = index * 50, easing = FastOutSlowInEasing)) { it / 6 }
                 ) {
-                    WorkerCardRow(worker = w, onClick = { onWorkerClick(w.uid) })
+                    WorkerCardRow(worker = w, language = language, onClick = { onWorkerClick(w.uid) })
                 }
             }
             item {
-                OutlinedButton(onClick = onOpenEstimator, modifier = Modifier.fillMaxWidth().height(50.dp)) { Text("Open offline estimator") }
+                OutlinedButton(onClick = onOpenEstimator, modifier = Modifier.fillMaxWidth().height(50.dp)) {
+                    Text(t(language, "Open offline estimator", "ഓഫ്‌ലൈൻ എസ്റ്റിമേറ്റർ തുറക്കുക"))
+                }
             }
-            item { TextButton(onClick = onSignOut) { Text("Sign out") } }
+            item {
+                TextButton(onClick = onSignOut) {
+                    Text(t(language, "Sign out", "പുറത്തുകടക്കുക"))
+                }
+            }
         }
     }
 }
 
 @Composable
-private fun WorkerCardRow(worker: WorkerCard, onClick: () -> Unit) {
+private fun WorkerCardRow(
+    worker: WorkerCard,
+    language: AppLanguage = AppLanguage.EN,
+    onClick: () -> Unit
+) {
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val scale by animateFloatAsState(if (pressed) 0.98f else 1f, label = "workerCardScale")
     Surface(
-        shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), shadowElevation = 1.dp,
-        modifier = Modifier.fillMaxWidth().scale(scale)
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        shadowElevation = 1.dp,
+        modifier = Modifier
+            .fillMaxWidth()
+            .scale(scale)
             .clickable(interactionSource = interactionSource, indication = null, onClick = onClick)
     ) {
         Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                 Text(worker.name, style = MaterialTheme.typography.titleLarge)
-                Text(worker.distanceBandLabel, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Text(
+                    worker.distanceBandLabel,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(5.dp)) {
                 Icon(Icons.Filled.Star, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.height(16.dp))
                 Text(
-                    if (worker.ratingCount > 0) "${"%.1f".format(worker.ratingAvg)} · ${worker.ratingCount} ratings · ${worker.verifiedCount} verified" else "No ratings yet",
+                    if (worker.ratingCount > 0) {
+                        "${"%.1f".format(worker.ratingAvg)} · ${worker.ratingCount} ${t(language, "ratings", "റേറ്റിംഗുകൾ")} · ${worker.verifiedCount} ${t(language, "verified", "സ്ഥിരീകരിച്ചത്")}"
+                    } else {
+                        t(language, "No ratings yet", "റേറ്റിംഗുകൾ ഇല്ല")
+                    },
                     style = MaterialTheme.typography.bodySmall
                 )
             }
-            Text("${worker.languages.joinToString()} · ₹${worker.rateMinInr.toInt()}-₹${worker.rateMaxInr.toInt()}/hr", style = MaterialTheme.typography.bodyMedium)
+            Text(
+                "${worker.languages.joinToString()} · ₹${worker.rateMinInr.toInt()}-₹${worker.rateMaxInr.toInt()}/${t(language, "hr", "മണി")}",
+                style = MaterialTheme.typography.bodyMedium
+            )
             Text(worker.services.joinToString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
@@ -134,6 +195,8 @@ fun WorkerDetailScreen(
     recentRatings: List<Rating>,
     onRequestBooking: () -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -142,10 +205,13 @@ fun WorkerDetailScreen(
         if (worker == null) {
             Column(modifier = Modifier.fillMaxSize().padding(padding).padding(24.dp)) {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onBack) { Text("< Back") }
-                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    TextButton(onClick = onBack) { Text(t(language, "< Back", "< തിരികെ")) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    }
                 }
-                Text("This worker is no longer available.")
+                Text(t(language, "This worker is no longer available.", "ഈ തൊഴിലാളി ഇപ്പോൾ ലഭ്യമല്ല."))
             }
             return@Scaffold
         }
@@ -155,8 +221,11 @@ fun WorkerDetailScreen(
         ) {
             item {
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                    TextButton(onClick = onBack) { Text("< Back") }
-                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    TextButton(onClick = onBack) { Text(t(language, "< Back", "< തിരികെ")) }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    }
                 }
             }
             item {
@@ -169,23 +238,50 @@ fun WorkerDetailScreen(
                 Surface(shape = RoundedCornerShape(18.dp), color = MaterialTheme.colorScheme.primaryContainer, modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(20.dp), verticalArrangement = Arrangement.spacedBy(5.dp)) {
                         Text(
-                            if (worker.ratingCount > 0) "${"%.1f".format(worker.ratingAvg)} · ${worker.ratingCount} ratings · ${worker.verifiedCount} with verified photos" else "No ratings yet",
+                            if (worker.ratingCount > 0) {
+                                "${"%.1f".format(worker.ratingAvg)} · ${worker.ratingCount} ${t(language, "ratings", "റേറ്റിംഗുകൾ")} · ${worker.verifiedCount} ${t(language, "with verified photos", "സ്ഥിരീകരിച്ച ഫോട്ടോകളോടെ")}"
+                            } else {
+                                t(language, "No ratings yet", "റേറ്റിംഗുകൾ ഇല്ല")
+                            },
                             style = MaterialTheme.typography.titleMedium
                         )
-                        Text("A verified rating comes from a completed, hashed job - not just a tap.", style = MaterialTheme.typography.bodySmall)
+                        Text(
+                            t(
+                                language,
+                                "A verified rating comes from a completed, hashed job - not just a tap.",
+                                "പൂർത്തിയായ ജോലിയുടെ തെളിവ് ഫോട്ടോകളുള്ള വിശ്വസനീയ റേറ്റിംഗ് ആണിത്."
+                            ),
+                            style = MaterialTheme.typography.bodySmall
+                        )
                     }
                 }
             }
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Text("Languages: ${worker.languages.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                    Text("Services: ${worker.services.joinToString()}", style = MaterialTheme.typography.bodyMedium)
-                    Text("Rate: ₹${worker.rateMinInr.toInt()}-₹${worker.rateMaxInr.toInt()}/hr", style = MaterialTheme.typography.bodyMedium)
-                    if (worker.bio.isNotBlank()) Text(worker.bio, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        "${t(language, "Languages", "ഭാഷകൾ")}: ${worker.languages.joinToString()}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "${t(language, "Services", "സേവനങ്ങൾ")}: ${worker.services.joinToString()}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    Text(
+                        "${t(language, "Rate", "നിരക്ക്")}: ₹${worker.rateMinInr.toInt()}-₹${worker.rateMaxInr.toInt()}/${t(language, "hr", "മണി")}",
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    if (worker.bio.isNotBlank()) {
+                        Text(worker.bio, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
             }
             if (recentRatings.isNotEmpty()) {
-                item { Text("Recent comments", style = MaterialTheme.typography.titleMedium) }
+                item {
+                    Text(
+                        t(language, "Recent comments", "സമീപകാല അഭിപ്രായങ്ങൾ"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
+                }
                 itemsIndexed(recentRatings.take(5)) { index, r ->
                     AnimatedVisibility(
                         visible = true,
@@ -193,7 +289,10 @@ fun WorkerDetailScreen(
                     ) {
                         Surface(shape = RoundedCornerShape(14.dp), color = MaterialTheme.colorScheme.surface, border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()) {
                             Column(modifier = Modifier.padding(14.dp), verticalArrangement = Arrangement.spacedBy(3.dp)) {
-                                Text("${"★".repeat(r.stars)}${if (r.verified) "  verified" else ""}", style = MaterialTheme.typography.bodyMedium)
+                                Text(
+                                    "${"★".repeat(r.stars)}${if (r.verified) "  " + t(language, "verified", "സ്ഥിരീകരിച്ചത്") else ""}",
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
                                 if (r.comment.isNotBlank()) Text(r.comment, style = MaterialTheme.typography.bodySmall)
                                 if (r.tags.isNotEmpty()) Text(r.tags.joinToString(), style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             }
@@ -203,7 +302,10 @@ fun WorkerDetailScreen(
             }
             item {
                 Button(onClick = onRequestBooking, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                    Text("Request booking (now)", style = MaterialTheme.typography.titleMedium)
+                    Text(
+                        t(language, "Request booking (now)", "ഇപ്പോൾ ബുക്ക് ചെയ്യുക"),
+                        style = MaterialTheme.typography.titleMedium
+                    )
                 }
             }
         }

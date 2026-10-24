@@ -53,9 +53,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
 import com.koolikanaku.domain.EvidencePhoto
+import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.CaptureTarget
 import com.koolikanaku.ui.SizeMethod
 import com.koolikanaku.ui.components.CrosshairOverlay
+import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
 import com.koolikanaku.ui.components.PhotoImage
 import com.koolikanaku.ui.components.openPhotoExternally
 import androidx.compose.ui.platform.LocalContext
@@ -100,6 +103,10 @@ fun RoomCaptureScreen(
     onShutter: () -> Unit,
     onAnalyzeRoom: () -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
+    darkTheme: Boolean = false,
+    onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     var sheetOpen by remember { mutableStateOf(false) }
@@ -109,17 +116,27 @@ fun RoomCaptureScreen(
     Box(modifier = modifier.fillMaxSize()) {
         Scaffold(
             topBar = {
-                Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp), verticalAlignment = Alignment.Top) {
-                    IconButton(onClick = onBack) {
-                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.capture_back_to_setup))
+                Row(
+                    modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                        IconButton(onClick = onBack) {
+                            Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.capture_back_to_setup))
+                        }
+                        Column(modifier = Modifier.padding(top = 4.dp)) {
+                            Text(stringResource(R.string.capture_room_title, roomNumber), style = MaterialTheme.typography.headlineMedium)
+                            Text(
+                                stringResource(R.string.capture_intro),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
-                    Column(modifier = Modifier.padding(top = 10.dp)) {
-                        Text(stringResource(R.string.capture_room_title, roomNumber), style = MaterialTheme.typography.headlineMedium)
-                        Text(
-                            stringResource(R.string.capture_intro),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
                 }
             },

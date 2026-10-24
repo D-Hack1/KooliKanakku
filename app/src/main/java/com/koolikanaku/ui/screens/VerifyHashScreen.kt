@@ -21,11 +21,15 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
 import com.koolikanaku.capture.HashVerifier
+import com.koolikanaku.ui.AppLanguage
+import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
 
 /** Result of checking one picked file against the job's recorded hashes. */
 sealed class FileCheckResult {
@@ -44,18 +48,35 @@ fun VerifyHashScreen(
     fileResult: FileCheckResult?,
     onPickFile: () -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
+    darkTheme: Boolean = false,
+    onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     Scaffold(
         modifier = modifier,
         topBar = {
-            Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+            Row(
+                modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(
+                    modifier = Modifier.weight(1f),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    }
+                    Column(modifier = Modifier.padding(top = 4.dp)) {
+                        Text(stringResource(R.string.verify_title), style = MaterialTheme.typography.headlineMedium)
+                        Text(stringResource(R.string.verify_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    }
                 }
-                Column(modifier = Modifier.padding(top = 10.dp)) {
-                    Text(stringResource(R.string.verify_title), style = MaterialTheme.typography.headlineMedium)
-                    Text(stringResource(R.string.verify_subtitle), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                 }
             }
         }

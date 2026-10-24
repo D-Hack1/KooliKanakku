@@ -29,6 +29,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import com.koolikanaku.R
+import com.koolikanaku.ui.AppLanguage
+import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
 import com.koolikanaku.ui.components.RoomCard
 
 /** One room's summary for the Job Hub list. */
@@ -57,6 +60,10 @@ fun JobHubScreen(
     onRoomClick: (String) -> Unit,
     onFinish: () -> Unit,
     canFinish: Boolean = true,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
+    darkTheme: Boolean = false,
+    onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val hasRooms = rooms.isNotEmpty()
@@ -89,9 +96,23 @@ fun JobHubScreen(
                 modifier = Modifier.padding(start = 20.dp, end = 20.dp, top = padding.calculateTopPadding() + 20.dp, bottom = 12.dp),
                 verticalArrangement = Arrangement.spacedBy(10.dp)
             ) {
-                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.Bottom) {
-                    Text(stringResource(R.string.jobhub_title), style = MaterialTheme.typography.headlineLarge)
-                    Text(pluralStringResource(R.plurals.jobhub_rooms_count_plural, rooms.size, rooms.size), style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(stringResource(R.string.jobhub_title), style = MaterialTheme.typography.headlineLarge)
+                        Text(
+                            pluralStringResource(R.plurals.jobhub_rooms_count_plural, rooms.size, rooms.size),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                    }
                 }
                 Row(horizontalArrangement = Arrangement.spacedBy(6.dp)) {
                     Pill(modeLabel, filled = true)

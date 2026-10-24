@@ -59,6 +59,8 @@ import com.koolikanaku.ui.AppLanguage
 import com.koolikanaku.ui.components.AddTaskSheet
 import com.koolikanaku.ui.components.BoundingBoxOverlay
 import com.koolikanaku.ui.components.CatalogEntry
+import com.koolikanaku.ui.components.DarkModeToggle
+import com.koolikanaku.ui.components.LanguageToggle
 import com.koolikanaku.ui.components.PhotoImage
 import com.koolikanaku.ui.components.SeverityChip
 import com.koolikanaku.ui.components.TaskRow
@@ -117,6 +119,9 @@ fun RoomConfirmScreen(
     looseItemCount: Int,
     tasks: List<CleaningTask>,
     language: AppLanguage,
+    onLanguageChange: (AppLanguage) -> Unit = {},
+    darkTheme: Boolean = false,
+    onToggleDarkTheme: () -> Unit = {},
     allSelected: Boolean,
     onToggleTask: (String) -> Unit,
     onIncrementTask: (String) -> Unit,
@@ -140,17 +145,27 @@ fun RoomConfirmScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            Row(modifier = Modifier.statusBarsPadding().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp)) {
-                IconButton(onClick = onBack) {
-                    Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+            Row(
+                modifier = Modifier.statusBarsPadding().fillMaxWidth().padding(start = 4.dp, top = 8.dp, end = 16.dp, bottom = 4.dp),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    IconButton(onClick = onBack) {
+                        Icon(Icons.AutoMirrored.Outlined.ArrowBack, contentDescription = stringResource(R.string.common_back))
+                    }
+                    Column(modifier = Modifier.padding(top = 4.dp)) {
+                        Text(stringResource(R.string.confirm_title), style = MaterialTheme.typography.headlineMedium)
+                        Text(
+                            stringResource(R.string.confirm_subtitle, roomNumber),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
-                Column(modifier = Modifier.padding(top = 10.dp)) {
-                    Text(stringResource(R.string.confirm_title), style = MaterialTheme.typography.headlineMedium)
-                    Text(
-                        stringResource(R.string.confirm_subtitle, roomNumber),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                    DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                 }
             }
         },
