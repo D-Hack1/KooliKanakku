@@ -74,6 +74,17 @@ class ConnectViewModel(
         private set
     private var ownerGeohash: String? = null
 
+    /** True while a booking action (accept/decline/cancel/arrive/start/complete/rate) is in flight,
+     * so the tapping screen can show a spinner instead of looking frozen on a slow connection. */
+    var bookingActionBusy by mutableStateOf(false)
+        private set
+    /** Set when a booking action actually failed server-side (e.g. an expired session) - surfaced
+     * instead of silently treating a failed write as success, which used to leave the booking stuck
+     * at its old status (e.g. "Finish the booking" silently failing, leaving it at IN_PROGRESS). */
+    var bookingActionError by mutableStateOf<String?>(null)
+        private set
+    fun clearBookingActionError() { bookingActionError = null }
+
     fun attach(context: Context) {
         if (appContext != null) return
         appContext = context.applicationContext
@@ -241,24 +252,54 @@ class ConnectViewModel(
     }
 
     fun respondToBooking(bookingId: String, accept: Boolean) {
-        viewModelScope.launch { bookings.respond(bookingId, accept) }
+        viewModelScope.launch {
+            bookingActionBusy = true
+            runCatching { bookings.respond(bookingId, accept) }
+                .onFailure { bookingActionError = it.message ?: "Couldn't update the booking - try again" }
+            bookingActionBusy = false
+        }
     }
 
     fun setBookingStatus(bookingId: String, status: BookingStatus) {
-        viewModelScope.launch { bookings.setStatus(bookingId, status) }
+        viewModelScope.launch {
+            bookingActionBusy = true
+            runCatching { bookings.setStatus(bookingId, status) }
+                .onFailure { bookingActionError = it.message ?: "Couldn't update the booking - try again" }
+            bookingActionBusy = false
+        }
     }
 
     fun cancelBooking(bookingId: String, reason: String) {
-        viewModelScope.launch { bookings.cancel(bookingId, reason) }
+        viewModelScope.launch {
+            bookingActionBusy = true
+            runCatching { bookings.cancel(bookingId, reason) }
+                .onFailure { bookingActionError = it.message ?: "Couldn't cancel the booking - try again" }
+            bookingActionBusy = false
+        }
     }
 
-    fun completeBooking(bookingId: String, summary: EvidenceSummary) {
-        viewModelScope.launch { bookings.complete(bookingId, summary) }
+    /** [onDone] only fires on a confirmed successful write - never on failure, so the caller (e.g.
+     * "Finish the booking") never navigates away or marks itself done when the status update to
+     * COMPLETED didn't actually land, which used to leave the booking silently stuck at its old status. */
+    fun completeBooking(bookingId: String, summary: EvidenceSummary, onDone: () -> Unit = {}) {
+        viewModelScope.launch {
+            bookingActionBusy = true
+            val result = runCatching { bookings.complete(bookingId, summary) }
+            bookingActionBusy = false
+            result.onSuccess { onDone() }
+                .onFailure { bookingActionError = it.message ?: "Couldn't finish the booking - try again" }
+        }
     }
 
     // ---- Rating ----
 
     fun submitRating(bookingId: String, stars: Int, tags: List<String>, comment: String, onDone: () -> Unit) {
-        viewModelScope.launch { ratings.rate(bookingId, stars, tags, comment); onDone() }
+        viewModelScope.launch {
+            bookingActionBusy = true
+            val result = runCatching { ratings.rate(bookingId, stars, tags, comment) }
+            bookingActionBusy = false
+            result.onSuccess { onDone() }
+                .onFailure { bookingActionError = it.message ?: "Couldn't submit the rating - try again" }
+        }
     }
 }

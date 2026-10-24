@@ -21,6 +21,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.StarBorder
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -74,6 +75,9 @@ fun BookingStatusScreen(
     onCancel: () -> Unit,
     onRate: () -> Unit,
     onBack: () -> Unit,
+    /** True while an action (accept/decline/cancel/arrive/start/complete) is in flight, so buttons
+     * show a spinner and disable instead of looking frozen while the request is on the wire. */
+    busy: Boolean = false,
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
@@ -132,7 +136,7 @@ fun BookingStatusScreen(
 
             if (booking.status == BookingStatus.ACCEPTED || booking.status == BookingStatus.ARRIVED || booking.status == BookingStatus.IN_PROGRESS) {
                 item {
-                    Button(onClick = onCall, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Button(onClick = onCall, enabled = !busy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
                         Text(
                             t(
                                 language,
@@ -146,15 +150,17 @@ fun BookingStatusScreen(
             }
             if (booking.status == BookingStatus.ACCEPTED) {
                 item {
-                    OutlinedButton(onClick = onArrived, modifier = Modifier.fillMaxWidth().height(50.dp)) {
-                        Text(t(language, "I've arrived / worker arrived", "ഞാൻ എത്തി / തൊഴിലാളി എത്തിച്ചേർന്നു"))
+                    OutlinedButton(onClick = onArrived, enabled = !busy, modifier = Modifier.fillMaxWidth().height(50.dp)) {
+                        if (busy) CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp)
+                        else Text(t(language, "I've arrived / worker arrived", "ഞാൻ എത്തി / തൊഴിലാളി എത്തിച്ചേർന്നു"))
                     }
                 }
             }
             if (booking.status == BookingStatus.ARRIVED || booking.status == BookingStatus.IN_PROGRESS) {
                 item {
-                    Button(onClick = onStartEstimate, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                        Text(
+                    Button(onClick = onStartEstimate, enabled = !busy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                        if (busy) CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                        else Text(
                             if (meIsWorker) t(language, "Start the estimate", "എസ്റ്റിമേറ്റ് തുടങ്ങുക")
                             else t(language, "Start the estimate (quotation)", "ക്വട്ടേഷൻ ആരംഭിക്കുക"),
                             style = MaterialTheme.typography.titleMedium
@@ -164,15 +170,16 @@ fun BookingStatusScreen(
             }
             if (booking.status == BookingStatus.COMPLETED && !meIsWorker) {
                 item {
-                    Button(onClick = onRate, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                    Button(onClick = onRate, enabled = !busy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
                         Text(t(language, "Rate this worker", "തൊഴിലാളിക്ക് റേറ്റിംഗ് നൽകുക"))
                     }
                 }
             }
             if (booking.status == BookingStatus.REQUESTED || booking.status == BookingStatus.ACCEPTED) {
                 item {
-                    TextButton(onClick = onCancel) {
-                        Text(t(language, "Cancel booking", "ബുക്കിംഗ് റദ്ദാക്കുക"))
+                    TextButton(onClick = onCancel, enabled = !busy) {
+                        if (busy) CircularProgressIndicator(modifier = Modifier.height(16.dp), strokeWidth = 2.dp)
+                        else Text(t(language, "Cancel booking", "ബുക്കിംഗ് റദ്ദാക്കുക"))
                     }
                 }
             }
@@ -216,6 +223,7 @@ fun RateWorkerScreen(
     onCommentChange: (String) -> Unit,
     willBeVerified: Boolean,
     onSubmit: () -> Unit,
+    busy: Boolean = false,
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
@@ -283,8 +291,9 @@ fun RateWorkerScreen(
                     style = MaterialTheme.typography.bodySmall, modifier = Modifier.padding(14.dp)
                 )
             }
-            Button(onClick = onSubmit, enabled = stars > 0, modifier = Modifier.fillMaxWidth().height(54.dp)) {
-                Text(t(language, "Submit rating", "റേറ്റിംഗ് സമർപ്പിക്കുക"), style = MaterialTheme.typography.titleMedium)
+            Button(onClick = onSubmit, enabled = stars > 0 && !busy, modifier = Modifier.fillMaxWidth().height(54.dp)) {
+                if (busy) CircularProgressIndicator(modifier = Modifier.height(20.dp), strokeWidth = 2.dp, color = MaterialTheme.colorScheme.onPrimary)
+                else Text(t(language, "Submit rating", "റേറ്റിംഗ് സമർപ്പിക്കുക"), style = MaterialTheme.typography.titleMedium)
             }
         }
     }

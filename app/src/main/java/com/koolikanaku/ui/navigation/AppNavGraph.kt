@@ -118,6 +118,20 @@ fun AppNavGraph(
     remember(vm) { vm.attachStorage(storageContext) }   // restore a saved job before any screen reads state
     remember(cvm) { cvm.attach(storageContext) }
 
+    // Bookings this owner has already been prompted about (or finished themselves), so the
+    // "work is done, rate now?" dialog below fires exactly once per booking, wherever they are.
+    var completionPromptSeen by remember { mutableStateOf(setOf<String>()) }
+
+    // A failed booking action (accept/cancel/finish/rate/...) used to fail silently, leaving the
+    // booking stuck at its old status with no sign anything went wrong. Surface it instead.
+    val toastContext = LocalContext.current
+    LaunchedEffect(cvm.bookingActionError) {
+        cvm.bookingActionError?.let { message ->
+            android.widget.Toast.makeText(toastContext, message, android.widget.Toast.LENGTH_LONG).show()
+            cvm.clearBookingActionError()
+        }
+    }
+
     NavHost(
         navController = navController,
         startDestination = Routes.WELCOME,
@@ -700,8 +714,22 @@ fun AppNavGraph(
                         photoCount = job.rooms.sumOf { it.photos.size },
                         generatedAtEpochMs = System.currentTimeMillis()
                     )
-                    cvm.completeBooking(bookingId, summary)
-                    finishedBookingIds = finishedBookingIds + bookingId
+                    cvm.completeBooking(bookingId, summary) {
+                        finishedBookingIds = finishedBookingIds + bookingId
+                        if (cvm.user?.role == Role.OWNER) {
+                            // Only the owner rates (a worker can't rate themselves - BookingStatusScreen
+                            // hides that button for them too), so only the owner is bounced there - and
+                            // marked seen so the global "work is done" dialog doesn't also pop up on top of it.
+                            completionPromptSeen = completionPromptSeen + bookingId
+                            navController.navigate(Routes.rateWorker(bookingId))
+                        } else {
+                            vm.setPendingBooking(null)
+                            navController.navigate(Routes.WORKER_HOME) {
+                                popUpTo(Routes.WORKER_HOME) { inclusive = true }
+                                launchSingleTop = true
+                            }
+                        }
+                    }
                 },
                 onBack = { navController.popBackStack() },
                 language = vm.language,
@@ -798,7 +826,13 @@ fun AppNavGraph(
                         }
                     }
                 },
-                onUseWithoutAccount = { navController.navigate(Routes.SETUP) },
+                onUseWithoutAccount = {
+                    // Not tied to any booking - clear any stale pendingBookingId left over from a
+                    // booking flow the user backed out of, so this job doesn't get silently attached
+                    // to (and later "finish" into completing) an unrelated old booking.
+                    vm.setPendingBooking(null)
+                    navController.navigate(Routes.SETUP)
+                },
                 language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
@@ -877,6 +911,8 @@ fun AppNavGraph(
                 onOpenEstimator = {
                     vm.changeMode(AppMode.WORKER_ESTIMATE)
                     cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                    // Not tied to any booking - see onUseWithoutAccount's comment above.
+                    vm.setPendingBooking(null)
                     navController.navigate(Routes.SETUP)
                 },
                 onSeeAllRequests = { navController.navigate(Routes.REQUEST_INBOX) },
@@ -888,6 +924,7 @@ fun AppNavGraph(
                         launchSingleTop = true
                     }
                 },
+                busy = cvm.bookingActionBusy,
                 language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
@@ -917,6 +954,7 @@ fun AppNavGraph(
                 onRequestBooking = {},
                 showRequestButton = false,
                 onBack = { navController.popBackStack() },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -929,6 +967,7 @@ fun AppNavGraph(
                 onAccept = { cvm.respondToBooking(it, true) },
                 onDecline = { cvm.respondToBooking(it, false) },
                 onBack = { navController.popBackStack() },
+                busy = cvm.bookingActionBusy,
                 language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
@@ -944,14 +983,26 @@ fun AppNavGraph(
                 else locationPermissionLauncher.launch(android.Manifest.permission.ACCESS_COARSE_LOCATION)
             }
             val workers by cvm.nearbyWorkersFlow().collectAsState(initial = emptyList())
+            val allBookingsForOwner by cvm.bookingsForUser().collectAsState(initial = emptyList())
+            // REQUESTED included too: the owner should see a worker is assigned and the job is
+            // under way the moment they hire someone, not only once the worker gets around to
+            // accepting - unlike the worker's own "active" card, which keeps REQUESTED separate
+            // under "Incoming requests" since that side has something to act on (accept/decline).
+            val activeBooking = allBookingsForOwner.firstOrNull {
+                it.status in setOf(BookingStatus.REQUESTED, BookingStatus.ACCEPTED, BookingStatus.ARRIVED, BookingStatus.IN_PROGRESS)
+            }
             NearbyWorkersScreen(
                 areaLabel = cvm.ownerAreaLabel,
                 workers = workers,
                 onWorkerClick = { navController.navigate(Routes.workerDetail(it)) },
                 onOpenEstimator = {
                     vm.changeMode(AppMode.OWNER_QUOTE)
+                    // Not tied to any booking - see onUseWithoutAccount's comment above.
+                    vm.setPendingBooking(null)
                     navController.navigate(Routes.SETUP)
                 },
+                active = activeBooking,
+                onOpenBooking = { navController.navigate(Routes.bookingStatus(it)) },
                 onViewHiredWorkers = { navController.navigate(Routes.HIRED_WORKERS) },
                 onSignOut = {
                     cvm.signOut()
@@ -987,6 +1038,7 @@ fun AppNavGraph(
                 workers = hired,
                 onWorkerClick = { navController.navigate(Routes.workerHistory(it)) },
                 onBack = { navController.popBackStack() },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -1006,6 +1058,7 @@ fun AppNavGraph(
                 bookings = withThisWorker,
                 onOpenBooking = { navController.navigate(Routes.bookingStatus(it)) },
                 onBack = { navController.popBackStack() },
+                language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
         }
@@ -1053,16 +1106,29 @@ fun AppNavGraph(
                     if (meIsWorker) {
                         vm.changeMode(AppMode.WORKER_ESTIMATE)
                         cvm.workerRateMidpoint().takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                        vm.setPendingBooking(bookingId)
+                        cvm.setBookingStatus(bookingId, BookingStatus.IN_PROGRESS)
+                        navController.navigate(Routes.SETUP)
                     } else {
+                        // The quotation is for THIS worker's job, so it should default to what they
+                        // themselves already set as their rate, not a generic owner-market default.
                         vm.changeMode(AppMode.OWNER_QUOTE)
+                        scope.launch {
+                            val workerRate = cvm.profileFor(b.workerId)?.let { p ->
+                                if (p.rateMinInr > 0 && p.rateMaxInr > 0) (p.rateMinInr + p.rateMaxInr) / 2
+                                else if (p.rateMinInr > 0) p.rateMinInr else p.rateMaxInr
+                            }
+                            workerRate?.takeIf { it > 0 }?.let { vm.changeRateText(it.toInt().toString()) }
+                            vm.setPendingBooking(bookingId)
+                            cvm.setBookingStatus(bookingId, BookingStatus.IN_PROGRESS)
+                            navController.navigate(Routes.SETUP)
+                        }
                     }
-                    vm.setPendingBooking(bookingId)
-                    cvm.setBookingStatus(bookingId, BookingStatus.IN_PROGRESS)
-                    navController.navigate(Routes.SETUP)
                 },
                 onCancel = { cvm.cancelBooking(bookingId, "Cancelled by ${if (meIsWorker) "worker" else "owner"}") },
                 onRate = { navController.navigate(Routes.rateWorker(bookingId)) },
                 onBack = { navController.popBackStack() },
+                busy = cvm.bookingActionBusy,
                 language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
             )
@@ -1092,8 +1158,39 @@ fun AppNavGraph(
                         }
                     }
                 },
+                busy = cvm.bookingActionBusy,
                 language = vm.language, onLanguageChange = vm::changeLanguage,
                 darkTheme = vm.darkTheme, onToggleDarkTheme = vm::toggleDarkTheme
+            )
+        }
+    }
+
+    // Fires on whatever screen the owner is on, as soon as a poll picks up that a worker finished
+    // the job (status -> COMPLETED) - they shouldn't have to go find the booking themselves to rate it.
+    if (cvm.user?.role == Role.OWNER) {
+        val ownerBookings by cvm.bookingsForUser().collectAsState(initial = emptyList())
+        val toPrompt = ownerBookings.firstOrNull { it.status == BookingStatus.COMPLETED && it.id !in completionPromptSeen }
+        if (toPrompt != null) {
+            androidx.compose.material3.AlertDialog(
+                onDismissRequest = { completionPromptSeen = completionPromptSeen + toPrompt.id },
+                title = { androidx.compose.material3.Text(if (vm.language == AppLanguage.ML) "ജോലി പൂർത്തിയായി!" else "Work is done!") },
+                text = {
+                    androidx.compose.material3.Text(
+                        if (vm.language == AppLanguage.ML) "${toPrompt.workerName} ജോലി പൂർത്തിയാക്കി. ഇപ്പോൾ റേറ്റിംഗ് നൽകണോ?"
+                        else "${toPrompt.workerName} has finished the job. Rate them now?"
+                    )
+                },
+                confirmButton = {
+                    androidx.compose.material3.TextButton(onClick = {
+                        completionPromptSeen = completionPromptSeen + toPrompt.id
+                        navController.navigate(Routes.rateWorker(toPrompt.id))
+                    }) { androidx.compose.material3.Text(if (vm.language == AppLanguage.ML) "റേറ്റിംഗ് നൽകുക" else "Rate now") }
+                },
+                dismissButton = {
+                    androidx.compose.material3.TextButton(onClick = { completionPromptSeen = completionPromptSeen + toPrompt.id }) {
+                        androidx.compose.material3.Text(if (vm.language == AppLanguage.ML) "പിന്നീട്" else "Later")
+                    }
+                }
             )
         }
     }

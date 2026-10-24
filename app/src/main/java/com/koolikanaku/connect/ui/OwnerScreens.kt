@@ -55,6 +55,10 @@ fun NearbyWorkersScreen(
     onWorkerClick: (String) -> Unit,
     onOpenEstimator: () -> Unit,
     onSignOut: () -> Unit,
+    /** Mirrors Worker Home's own "Active booking" card - an in-progress job needs to be just as
+     * reachable from the owner's side as the worker's, not only findable via booking history. */
+    active: Booking? = null,
+    onOpenBooking: (String) -> Unit = {},
     language: AppLanguage = AppLanguage.EN,
     onLanguageChange: (AppLanguage) -> Unit = {},
     onViewHiredWorkers: () -> Unit = {},
@@ -94,6 +98,14 @@ fun NearbyWorkersScreen(
                         LanguageToggle(language = language, onLanguageChange = onLanguageChange)
                         DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
                     }
+                    }
+                }
+            }
+            if (active != null) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Text(t(language, "Active booking", "നിലവിലുള്ള ബുക്കിംഗ്"), style = MaterialTheme.typography.titleMedium)
+                        BookingCard(booking = active, meIsWorker = false, language = language, onClick = { onOpenBooking(active.id) })
                     }
                 }
             }
@@ -340,6 +352,8 @@ fun HiredWorkersScreen(
     workers: List<HiredWorkerSummary>,
     onWorkerClick: (String) -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -352,11 +366,17 @@ fun HiredWorkersScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onBack) { Text("< Back") }
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        TextButton(onClick = onBack) { Text(t(language, "< Back", "< തിരികെ")) }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
                     }
-                    Text("People I've hired", style = MaterialTheme.typography.headlineMedium)
-                    Text("Your own booking history with each worker.", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(t(language, "People I've hired", "ഞാൻ ജോലിക്കെടുത്തവർ"), style = MaterialTheme.typography.headlineMedium)
+                    Text(
+                        t(language, "Your own booking history with each worker.", "ഓരോ തൊഴിലാളിയുമായുള്ള നിങ്ങളുടെ സ്വന്തം ബുക്കിംഗ് ചരിത്രം."),
+                        style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
             }
             if (workers.isEmpty()) {
@@ -366,7 +386,8 @@ fun HiredWorkersScreen(
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant), modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            "You haven't booked anyone yet.", style = MaterialTheme.typography.bodyMedium,
+                            t(language, "You haven't booked anyone yet.", "നിങ്ങൾ ഇതുവരെ ആരെയും ബുക്ക് ചെയ്തിട്ടില്ല."),
+                            style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant, modifier = Modifier.padding(22.dp)
                         )
                     }
@@ -387,12 +408,13 @@ fun HiredWorkersScreen(
                             Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
                                 Text(w.workerName, style = MaterialTheme.typography.titleLarge)
                                 Text(
-                                    if (w.bookingCount == 1) "1 booking · last ${w.lastDateText}" else "${w.bookingCount} bookings · last ${w.lastDateText}",
+                                    if (w.bookingCount == 1) t(language, "1 booking · last ${w.lastDateText}", "1 ബുക്കിംഗ് · അവസാനം ${w.lastDateText}")
+                                    else t(language, "${w.bookingCount} bookings · last ${w.lastDateText}", "${w.bookingCount} ബുക്കിംഗുകൾ · അവസാനം ${w.lastDateText}"),
                                     style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                             }
                             Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                                Text(bookingStatusLabel(w.lastStatus), modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium)
+                                Text(activeBookingStatusLabel(w.lastStatus, language), modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp), style = MaterialTheme.typography.labelMedium)
                             }
                         }
                     }
@@ -412,6 +434,8 @@ fun WorkerHistoryScreen(
     bookings: List<Booking>,
     onOpenBooking: (String) -> Unit,
     onBack: () -> Unit,
+    language: AppLanguage = AppLanguage.EN,
+    onLanguageChange: (AppLanguage) -> Unit = {},
     darkTheme: Boolean = false,
     onToggleDarkTheme: () -> Unit = {},
     modifier: Modifier = Modifier
@@ -424,10 +448,13 @@ fun WorkerHistoryScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
-                        TextButton(onClick = onBack) { Text("< Back") }
-                        DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        TextButton(onClick = onBack) { Text(t(language, "< Back", "< തിരികെ")) }
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            LanguageToggle(language = language, onLanguageChange = onLanguageChange)
+                            DarkModeToggle(darkTheme = darkTheme, onToggle = onToggleDarkTheme)
+                        }
                     }
-                    Text("Your history with $workerName", style = MaterialTheme.typography.headlineMedium)
+                    Text(t(language, "Your history with $workerName", "$workerName-മായുള്ള നിങ്ങളുടെ ചരിത്രം"), style = MaterialTheme.typography.headlineMedium)
                 }
             }
             itemsIndexed(bookings) { index, b ->
@@ -444,12 +471,12 @@ fun WorkerHistoryScreen(
                             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {
                                 Text(java.text.DateFormat.getDateInstance().format(java.util.Date(b.createdAtEpochMs)), style = MaterialTheme.typography.titleMedium)
                                 Surface(shape = RoundedCornerShape(10.dp), color = MaterialTheme.colorScheme.primaryContainer) {
-                                    Text(bookingStatusLabel(b.status), modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
+                                    Text(activeBookingStatusLabel(b.status, language), modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp), style = MaterialTheme.typography.labelMedium)
                                 }
                             }
                             Text("${b.areaLabel} · ${b.sizeHint}", style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             b.evidence?.let { e ->
-                                Text("₹${e.totalPriceLowInr.toInt()}-₹${e.totalPriceHighInr.toInt()} · ${e.roomCount} room(s)", style = MaterialTheme.typography.bodyMedium)
+                                Text("₹${e.totalPriceLowInr.toInt()}-₹${e.totalPriceHighInr.toInt()} · ${e.roomCount} ${t(language, "room(s)", "മുറി(കൾ)")}", style = MaterialTheme.typography.bodyMedium)
                             }
                         }
                     }
